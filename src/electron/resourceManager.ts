@@ -347,48 +347,134 @@ export const estimateGas = async (
   }
 };
 
+// export const transferTokens = async (
+//   tokenAddress: string,
+//   recipientAddress: string,
+//   amount: string,
+//   chain: string
+// ): Promise<string> => {
+//   const chainName = () => {
+//     const chainMapping: Record<string, string> = {
+//       ethereum: "mainnet",
+//       polygon: "polygon-mainnet",
+//       optimism: "optimism-mainnet",
+//       arbitrum: "arbitrum-mainnet",
+//       binance: "bsc-mainnet",
+//     };
+
+//     return chainMapping[chain] || null;
+//   };
+
+//   console.log("HIHIHI", tokenAddress, recipientAddress, amount, chain);
+//   try {
+//     const chainUrl = chainName();
+//     if (!chainUrl) {
+//       throw new Error(`Unsupported chain: ${chain}`);
+//     }
+
+//     const INFURA_URL = `https://${chainUrl}.infura.io/v3/facc2b79cf3a4d69a508d34daca25a49`;
+
+//     // ERC20 token abi from ethers.js
+//     const abi = [
+//       // Read-Only Functions
+//       "function balanceOf(address owner) view returns (uint256)",
+//       "function decimals() view returns (uint8)",
+//       "function symbol() view returns (string)",
+
+//       // Authenticated Functions
+//       "function transfer(address to, uint amount) returns (bool)",
+
+//       "function transferFrom(address sender, address recipient, uint256 amount) returns (bool)",
+
+//       // Events
+//       "event Transfer(address indexed from, address indexed to, uint amount)",
+//     ];
+
+//     const abiPR = await import(
+//       "./contracts/artifacts-etherspot-v1/PersonalAccountRegistry.json",
+//       {
+//         with: { type: "json" },
+//       }
+//     );
+
+//     const PERSONAL_ACCOUNT_REGISTRY_ADDRESS =
+//       "0x7EB3A038F25B9F32f8e19A7F0De83D4916030eFa";
+
+//     const provider = new ethers.providers.JsonRpcProvider(INFURA_URL);
+
+//     const signer = provider.getSigner(
+//       "0x19396DE329F9bF5553457956136273c153b62aE4"
+//     );
+
+//     console.log("THE SIGNER", signer);
+//     const tokenContract = new ethers.Contract(tokenAddress, abi, provider);
+
+//     const accountContract = new ethers.Contract(
+//       PERSONAL_ACCOUNT_REGISTRY_ADDRESS,
+//       abiPR.default.abi,
+//       provider
+//     );
+
+//     const pk =
+//       "0xf408bbf7a65bc51f12d1663fa318105befc2af27be4127b50f5106f09c734adf";
+
+//     // const iface = new ethers.utils.Interface(abi);
+
+//     // const recipient = "0x3788bb31d134D96399744B7A423066A9258946A2";
+//     // const amount = ethers.utils.parseUnits("1.0", 18);
+
+//     // const data = iface.encodeFunctionData("transfer", [recipient, amount]);
+
+//     // console.log("Encoded data:", data);
+
+//     const wallet = new ethers.Wallet(pk, provider);
+
+//     const decimals = await tokenContract.decimals();
+
+//     const amountInUnits = ethers.utils.parseUnits("1", decimals);
+
+//     console.log("prout hihi", recipientAddress, amountInUnits, wallet);
+
+//     const tx = await accountContract
+//       .connect(signer)
+//       .executeAccountTransaction(
+//         "0x19396DE329F9bF5553457956136273c153b62aE4",
+//         "0x3788bb31d134D96399744B7A423066A9258946A2",
+//         "1",
+//         "0x"
+//       );
+
+//     const receipt = await tx.wait();
+
+//     return `Transaction successful with hash: ${receipt.transactionHash}`;
+//   } catch (error) {
+//     return `Error transferring tokens: ${error}`;
+//   }
+// };
+
+async function connectToSigner() {
+  const provider = new ethers.providers.JsonRpcProvider(
+    "https://polygon-mainnet.infura.io/v3/facc2b79cf3a4d69a508d34daca25a49"
+  );
+
+  const wallet = new ethers.Wallet(
+    "0xf408bbf7a65bc51f12d1663fa318105befc2af27be4127b50f5106f09c734adf",
+    provider
+  );
+
+  return wallet;
+}
+
 export const transferTokens = async (
   tokenAddress: string,
   recipientAddress: string,
   amount: string,
   chain: string
-): Promise<string> => {
-  const chainName = () => {
-    const chainMapping: Record<string, string> = {
-      ethereum: "mainnet",
-      polygon: "polygon-mainnet",
-      optimism: "optimism-mainnet",
-      arbitrum: "arbitrum-mainnet",
-      binance: "bsc-mainnet",
-    };
-
-    return chainMapping[chain] || null;
-  };
-
-  console.log("HIHIHI", tokenAddress, recipientAddress, amount, chain);
+) => {
   try {
-    const chainUrl = chainName();
-    if (!chainUrl) {
-      throw new Error(`Unsupported chain: ${chain}`);
-    }
-
-    const INFURA_URL = `https://${chainUrl}.infura.io/v3/${process.env.REACT_APP_API_KEY}`;
-
-    // ERC20 token abi from ethers.js
-    const abi = [
-      // Read-Only Functions
-      "function balanceOf(address owner) view returns (uint256)",
-      "function decimals() view returns (uint8)",
-      "function symbol() view returns (string)",
-
-      // Authenticated Functions
-      "function transfer(address to, uint amount) returns (bool)",
-
-      "function transferFrom(address sender, address recipient, uint256 amount) returns (bool)",
-
-      // Events
-      "event Transfer(address indexed from, address indexed to, uint amount)",
-    ];
+    const signer = await connectToSigner();
+    const personalAccountRegistryAddress =
+      "0x7EB3A038F25B9F32f8e19A7F0De83D4916030eFa";
 
     const abiPR = await import(
       "./contracts/artifacts-etherspot-v1/PersonalAccountRegistry.json",
@@ -397,56 +483,140 @@ export const transferTokens = async (
       }
     );
 
-    const PERSONAL_ACCOUNT_REGISTRY_ADDRESS =
-      "0x7EB3A038F25B9F32f8e19A7F0De83D4916030eFa";
-
-    const provider = new ethers.providers.JsonRpcProvider(INFURA_URL);
-
-    const signer = provider.getSigner(
-      "0x19396DE329F9bF5553457956136273c153b62aE4"
-    );
-
-    console.log("THE SIGNER", signer);
-    const tokenContract = new ethers.Contract(tokenAddress, abi, provider);
-
-    const accountContract = new ethers.Contract(
-      PERSONAL_ACCOUNT_REGISTRY_ADDRESS,
+    const personalAccountRegistryContract = new ethers.Contract(
+      personalAccountRegistryAddress,
       abiPR.default.abi,
-      provider
+      signer
     );
 
-    const pk = process.env.REACT_APP_PRIVATE_KEY || "";
+    // Encode the ERC20 transfer data (using ethers.js ABI encoding)
+    const tokenInterface = new ethers.utils.Interface([
+      "function transfer(address to, uint256 value) public returns (bool)",
+    ]);
+    // const tokenInterface = new ethers.utils.Interface([
+    //   "function transferFrom(address from, address to, uint256 value) public returns (bool)",
+    // ]);
+    const data = tokenInterface.encodeFunctionData("transfer", [
+      "0x3788bb31d134D96399744B7A423066A9258946A2",
+      ethers.utils.parseEther("1"),
+    ]);
 
-    // const iface = new ethers.utils.Interface(abi);
+    const value = ethers.BigNumber.from(0);
 
-    // const recipient = "0x3788bb31d134D96399744B7A423066A9258946A2";
-    // const amount = ethers.utils.parseUnits("1.0", 18);
+    const tx = await personalAccountRegistryContract.executeAccountTransaction(
+      "0x19396DE329F9bF5553457956136273c153b62aE4",
+      "0xa6b37fC85d870711C56FbcB8afe2f8dB049AE774",
+      value,
+      data
+    );
 
-    // const data = iface.encodeFunctionData("transfer", [recipient, amount]);
-
-    // console.log("Encoded data:", data);
-
-    const wallet = new ethers.Wallet(pk, provider);
-
-    const decimals = await tokenContract.decimals();
-
-    const amountInUnits = ethers.utils.parseUnits("1", decimals);
-
-    console.log("prout hihi", recipientAddress, amountInUnits, wallet);
-
-    const tx = await accountContract
-      .connect(signer)
-      .executeAccountTransaction(
-        "0x19396DE329F9bF5553457956136273c153b62aE4",
-        "0x3788bb31d134D96399744B7A423066A9258946A2",
-        "1",
-        "0x"
-      );
-
-    const receipt = await tx.wait();
-
-    return `Transaction successful with hash: ${receipt.transactionHash}`;
+    await tx.wait();
+    console.log("Tokens transferred successfully");
   } catch (error) {
-    return `Error transferring tokens: ${error}`;
+    console.error("Error transferring tokens:", error);
   }
 };
+
+// export const transferTokens = async (
+//   tokenAddress: string,
+//   recipientAddress: string,
+//   amount: string,
+//   chain: stringc
+// ): Promise<string> => {
+//   const chainName = () => {
+//     const chainMapping: Record<string, string> = {
+//       ethereum: "mainnet",
+//       polygon: "polygon-mainnet",
+//       optimism: "optimism-mainnet",
+//       arbitrum: "arbitrum-mainnet",
+//       binance: "bsc-mainnet",
+//     };
+
+//     return chainMapping[chain] || null;
+//   };
+
+//   try {
+//     const chainUrl = chainName();
+//     if (!chainUrl) {
+//       throw new Error(`Unsupported chain: ${chain}`);
+//     }
+
+//     const INFURA_URL = `https://${chainUrl}.infura.io/v3/facc2b79cf3a4d69a508d34daca25a49`;
+
+//     // ERC20 token abi from ethers.js
+//     const abi = [
+//       // Read-Only Functions
+//       "function balanceOf(address owner) view returns (uint256)",
+//       "function decimals() view returns (uint8)",
+//       "function symbol() view returns (string)",
+
+//       // Authenticated Functions
+//       "function transfer(address to, uint amount) returns (bool)",
+
+//       "function transferFrom(address sender, address recipient, uint256 amount) returns (bool)",
+
+//       // Events
+//       "event Transfer(address indexed from, address indexed to, uint amount)",
+//     ];
+
+//     const abiPR = await import(
+//       "./contracts/artifacts-etherspot-v1/PersonalAccountRegistry.json",
+//       {
+//         with: { type: "json" },
+//       }
+//     );
+
+//     const PERSONAL_ACCOUNT_REGISTRY_ADDRESS =
+//       "0x7EB3A038F25B9F32f8e19A7F0De83D4916030eFa";
+
+//     const provider = new ethers.providers.JsonRpcProvider(INFURA_URL);
+
+//     const signer = provider.getSigner(
+//       "0x19396DE329F9bF5553457956136273c153b62aE4"
+//     );
+
+//     console.log("THE SIGNER", signer);
+//     const tokenContract = new ethers.Contract(tokenAddress, abi, provider);
+
+//     const accountContract = new ethers.Contract(
+//       PERSONAL_ACCOUNT_REGISTRY_ADDRESS,
+//       abiPR.default.abi,
+//       provider
+//     );
+
+//     const pk =
+//       "0xf408bbf7a65bc51f12d1663fa318105befc2af27be4127b50f5106f09c734adf";
+
+//     // const iface = new ethers.utils.Interface(abi);
+
+//     // const recipient = "0x3788bb31d134D96399744B7A423066A9258946A2";
+//     // const amount = ethers.utils.parseUnits("1.0", 18);
+
+//     // const data = iface.encodeFunctionData("transfer", [recipient, amount]);
+
+//     // console.log("Encoded data:", data);
+
+//     const wallet = new ethers.Wallet(pk, provider);
+
+//     const decimals = await tokenContract.decimals();
+
+//     const amountInUnits = ethers.utils.parseUnits("1", decimals);
+
+//     console.log("prout hihi", recipientAddress, amountInUnits, wallet);
+
+//     const tx = await accountContract
+//       .connect(signer)
+//       .executeAccountTransaction(
+//         "0x19396DE329F9bF5553457956136273c153b62aE4",
+//         "0x3788bb31d134D96399744B7A423066A9258946A2",
+//         "1",
+//         "0x"
+//       );
+
+//     const receipt = await tx.wait();
+
+//     return `Transaction successful with hash: ${receipt.transactionHash}`;
+//   } catch (error) {
+//     return `Error transferring tokens: ${error}`;
+//   }
+// };
