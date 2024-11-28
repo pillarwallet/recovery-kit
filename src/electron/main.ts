@@ -59,7 +59,7 @@ app.on("ready", () => {
       const EOAAddress = await getEOAAddress(privateKey);
       return EOAAddress;
     } catch (error) {
-      return `Error", ${error}`;
+      return `Error, ${error}`;
     }
   });
 
@@ -70,7 +70,7 @@ app.on("ready", () => {
       const result: string = await submitMnemonic(mnemonicWords);
       return result;
     } catch (error) {
-      return `Error", ${error}`;
+      return `Error, ${error}`;
     }
   });
 
@@ -80,7 +80,7 @@ app.on("ready", () => {
       const privateKeyResult = await getPrivateKey(mnemonicWords);
       return privateKeyResult;
     } catch (error) {
-      return `Error", ${error}`;
+      return `Error, ${error}`;
     }
   });
 
@@ -98,7 +98,7 @@ app.on("ready", () => {
 
         return readableBalances;
       } catch (error) {
-        return `Error", ${error}`;
+        return `Error, ${error}`;
       }
     }
   );
@@ -110,7 +110,7 @@ app.on("ready", () => {
 
       return nftName;
     } catch (error) {
-      return `Error", ${error}`;
+      return `Error, ${error}`;
     }
   });
 
@@ -128,7 +128,7 @@ app.on("ready", () => {
 
         return nftBalance;
       } catch (error) {
-        return `Error", ${error}`;
+        return `Error, ${error}`;
       }
     }
   );
@@ -140,7 +140,7 @@ app.on("ready", () => {
 
       return nativeBalance;
     } catch (error) {
-      return `Error", ${error}`;
+      return `Error, ${error}`;
     }
   });
 
@@ -151,7 +151,7 @@ app.on("ready", () => {
 
       return decimal;
     } catch (error) {
-      return `Error", ${error}`;
+      return `Error, ${error}`;
     }
   });
 
@@ -179,7 +179,7 @@ app.on("ready", () => {
 
         return estimatedGas;
       } catch (error) {
-        return `Error", ${error}`;
+        return `Error, ${error}`;
       }
     }
   );
@@ -199,7 +199,7 @@ app.on("ready", () => {
 
         return estimatedGas;
       } catch (error) {
-        return `Error", ${error}`;
+        return `Error, ${error}`;
       }
     }
   );
@@ -228,7 +228,7 @@ app.on("ready", () => {
 
         return tx;
       } catch (error) {
-        return `Error", ${error}`;
+        return `Error, ${error}`;
       }
     }
   );
@@ -257,7 +257,7 @@ app.on("ready", () => {
 
         return tx;
       } catch (error) {
-        return `Error", ${error}`;
+        return `Error, ${error}`;
       }
     }
   );
