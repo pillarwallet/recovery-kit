@@ -78,10 +78,25 @@ const AssetsList = () => {
       );
 
       const bigIntBalance = balance[0];
-      const decimal = await window.electron.getDecimal(tokenAddress, chain);
-      const readableBalance = ethers.utils.formatUnits(bigIntBalance, decimal);
 
-      return Number(readableBalance);
+      try {
+        const decimal = await window.electron.getDecimal(tokenAddress, chain);
+        const readableBalance = ethers.utils.formatUnits(
+          bigIntBalance,
+          decimal
+        );
+
+        return Number(readableBalance);
+      } catch (decimalError) {
+        console.error("Error fetching decimals:", decimalError);
+        setError(
+          `Error fetching decimals for ${tokenAddress} on ${chain}. Please try again.`
+        );
+        setTimeout(() => {
+          setError(null);
+        }, 5000);
+        return 0;
+      }
     } catch (error) {
       console.error("Error fetching balance:", error);
       setError(

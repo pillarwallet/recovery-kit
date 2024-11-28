@@ -14,22 +14,10 @@ import { chainMapping } from "./main.js";
 
 // utils
 import {
-  BALANCES_HELPER_V2_ADDRES,
-  PERSONAL_ACCOUNT_REGISTRY_ADDRESS,
+  ETHERSPOT_V1_BALANCES_HELPER_V2_ADDRESS,
+  ETHERSPOT_V1_PERSONAL_ACCOUNT_REGISTRY_ADDRESS,
   processBigNumber,
 } from "./utils.js";
-
-// TODO - create2Address for Archanova
-// export const create2Address = (EAOAddress: string) => {
-//   const accountAddress = getContractAddress({
-//     bytecode: process.env.BYTECODE_ARCHANOVA_ACCOUNT as `0x${string}`,
-//     from: EAOAddress as `0x${string}`,
-//     opcode: "CREATE2",
-//     salt: EAOAddress as `0x${string}`,
-//   });
-
-//   return accountAddress;
-// };
 
 const getNetworkViem = (network: Network): Chain => {
   switch (network) {
@@ -55,7 +43,7 @@ export const getEOAAddress = async (privateKey: string): Promise<string> => {
     const providerWallet = new ethers.Wallet(privateKey);
     return providerWallet.address;
   } catch (error) {
-    return `Error to get the EOA address:", ${error}`;
+    return `Error to get the EOA address:, ${error}`;
   }
 };
 
@@ -76,7 +64,7 @@ export const getAccountAddress = async (privateKey: string) => {
     const provider = new ethers.providers.JsonRpcProvider(chainUrl);
 
     const contract = new ethers.Contract(
-      PERSONAL_ACCOUNT_REGISTRY_ADDRESS,
+      ETHERSPOT_V1_PERSONAL_ACCOUNT_REGISTRY_ADDRESS,
       personalRegistryAbi.default.abi,
       provider
     );
@@ -87,7 +75,7 @@ export const getAccountAddress = async (privateKey: string) => {
 
     return accountAddress;
   } catch (error) {
-    return `Error to get the account address:", ${error}`;
+    return `Error to get the account address:, ${error}`;
   }
 };
 
@@ -174,7 +162,7 @@ export const getBalances = async (
     const provider = new ethers.providers.JsonRpcProvider(chainUrl);
 
     const contract = new ethers.Contract(
-      BALANCES_HELPER_V2_ADDRES,
+      ETHERSPOT_V1_BALANCES_HELPER_V2_ADDRESS,
       contractAbi.default.abi,
       provider
     );
@@ -311,7 +299,7 @@ export const estimateGas = async (
     const EOAAddress = await getEOAAddress(privateKey);
 
     const gasEstimate = await client.estimateContractGas({
-      address: PERSONAL_ACCOUNT_REGISTRY_ADDRESS as `0x${string}`,
+      address: ETHERSPOT_V1_PERSONAL_ACCOUNT_REGISTRY_ADDRESS as `0x${string}`,
       abi: personalRegistryAbi.default.abi,
       functionName: "executeAccountTransaction",
       args: [accountAddress, tokenAddress, "0", calldata],
@@ -371,7 +359,7 @@ export const transferTokens = async (
     });
 
     const accountContract = getContract({
-      address: PERSONAL_ACCOUNT_REGISTRY_ADDRESS as `0x${string}`,
+      address: ETHERSPOT_V1_PERSONAL_ACCOUNT_REGISTRY_ADDRESS as `0x${string}`,
       abi: personalRegistryAbi.default.abi,
       client: wallet,
     });
@@ -631,7 +619,7 @@ export const transferNft = async (
     });
 
     const accountContract = getContract({
-      address: PERSONAL_ACCOUNT_REGISTRY_ADDRESS as `0x${string}`,
+      address: ETHERSPOT_V1_PERSONAL_ACCOUNT_REGISTRY_ADDRESS as `0x${string}`,
       abi: personalRegistryAbi.default.abi,
       client: wallet,
     });

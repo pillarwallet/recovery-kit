@@ -53,31 +53,35 @@ app.on("ready", () => {
     console.log("Updated Chain Mapping in Main Process:", chainMapping);
   });
 
-  // Pass environment variables to React via IPC
-  ipcMain.on("get-env", (event) => {
-    event.reply("env-data", {
-      apiUrl: process.env.REACT_APP_API_URL,
-      apiKey: process.env.REACT_APP_API_KEY,
-    });
-  });
-
   // Handle getting the EAO address
   ipcMain.handle("getEOAAddress", async (_, privateKey) => {
-    const EOAAddress = await getEOAAddress(privateKey);
-    return EOAAddress;
+    try {
+      const EOAAddress = await getEOAAddress(privateKey);
+      return EOAAddress;
+    } catch (error) {
+      return `Error", ${error}`;
+    }
   });
 
   // Handle the mnemonic from the frontend
   ipcMain.handle("submitMnemonic", async (_, mnemonicWords: string[]) => {
-    console.log("Received Mnemonic Words:", mnemonicWords);
-    const result: string = await submitMnemonic(mnemonicWords);
-    return result;
+    try {
+      console.log("Received Mnemonic Words:", mnemonicWords);
+      const result: string = await submitMnemonic(mnemonicWords);
+      return result;
+    } catch (error) {
+      return `Error", ${error}`;
+    }
   });
 
   // Handle getting the Private Key
   ipcMain.handle("getPrivateKey", async (_, mnemonicWords) => {
-    const privateKeyResult = await getPrivateKey(mnemonicWords);
-    return privateKeyResult;
+    try {
+      const privateKeyResult = await getPrivateKey(mnemonicWords);
+      return privateKeyResult;
+    } catch (error) {
+      return `Error", ${error}`;
+    }
   });
 
   // Handle all balances in the tokens lists
@@ -94,7 +98,7 @@ app.on("ready", () => {
 
         return readableBalances;
       } catch (error) {
-        return console.log("Error", error);
+        return `Error", ${error}`;
       }
     }
   );
@@ -106,7 +110,7 @@ app.on("ready", () => {
 
       return nftName;
     } catch (error) {
-      return console.log("Error", error);
+      return `Error", ${error}`;
     }
   });
 
@@ -124,7 +128,7 @@ app.on("ready", () => {
 
         return nftBalance;
       } catch (error) {
-        return console.log("Error", error);
+        return `Error", ${error}`;
       }
     }
   );
@@ -136,7 +140,7 @@ app.on("ready", () => {
 
       return nativeBalance;
     } catch (error) {
-      return console.log("Error", error);
+      return `Error", ${error}`;
     }
   });
 
@@ -147,7 +151,7 @@ app.on("ready", () => {
 
       return decimal;
     } catch (error) {
-      return console.log("Error", error);
+      return `Error", ${error}`;
     }
   });
 
@@ -175,7 +179,7 @@ app.on("ready", () => {
 
         return estimatedGas;
       } catch (error) {
-        return console.log("Error", error);
+        return `Error", ${error}`;
       }
     }
   );
@@ -195,7 +199,7 @@ app.on("ready", () => {
 
         return estimatedGas;
       } catch (error) {
-        return console.log("Error", error);
+        return `Error", ${error}`;
       }
     }
   );
@@ -224,7 +228,7 @@ app.on("ready", () => {
 
         return tx;
       } catch (error) {
-        return console.log("Error", error);
+        return `Error", ${error}`;
       }
     }
   );
@@ -253,7 +257,7 @@ app.on("ready", () => {
 
         return tx;
       } catch (error) {
-        return console.log("Error", error);
+        return `Error", ${error}`;
       }
     }
   );
