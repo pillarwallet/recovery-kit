@@ -1,14 +1,12 @@
-import React from "react";
-
 interface LoadingSpinnerProps {
   size?: number;
   color?: string;
 }
 
-const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
+const LoadingSpinner = ({
   size = 16,
   color = "white",
-}) => {
+}: LoadingSpinnerProps) => {
   return (
     <div
       className={`animate-spin rounded-full border-t-2 border-${color} border-opacity-50`}

@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ipcMain, WebContents, WebFrameMain } from "electron";
+import { BigNumberish } from "ethers";
 import { pathToFileURL } from "url";
 import { getUIPath } from "./pathResolver.js";
 
@@ -6,13 +8,17 @@ export function isDev(): boolean {
   return process.env.NODE_ENV === "development";
 }
 
+export const processBigNumber = (val: BigNumberish): number =>
+  Number(val.toString());
+
 export function ipcMainHandle<Key extends keyof EventPayloadMapping>(
   key: Key,
-  handler: () => EventPayloadMapping[Key]
+  handler: (...args: any[]) => EventPayloadMapping[Key]
 ) {
-  ipcMain.handle(key, (event) => {
+  ipcMain.handle(key, async (event, ...args) => {
     validateEventFrame(event.senderFrame);
-    return handler();
+    const result = await handler(...args);
+    return result;
   });
 }
 
@@ -42,3 +48,9 @@ export function validateEventFrame(frame: WebFrameMain) {
     throw new Error("Malicious event");
   }
 }
+
+export const BALANCES_HELPER_V2_ADDRES =
+  "0xe5A160F89f330cc933816E896a3F36376DE0a835";
+
+export const PERSONAL_ACCOUNT_REGISTRY_ADDRESS =
+  "0x7EB3A038F25B9F32f8e19A7F0De83D4916030eFa";

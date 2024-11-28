@@ -1,59 +1,97 @@
-import { ipcRenderer } from "electron";
-
 const electron = require("electron");
 
 electron.contextBridge.exposeInMainWorld("electron", {
-  subscribeStatistics: (callback) =>
-    ipcOn("statistics", (stats) => {
-      callback(stats);
-    }),
-  subscribeChangeView: (callback) =>
-    ipcOn("changeView", (view) => {
-      callback(view);
-    }),
-  getStaticData: () => ipcInvoke("getStaticData"),
-  sendFrameAction: (payload) => ipcSend("sendFrameAction", payload),
+  updateChainMapping: (updatedChainMapping: any) =>
+    ipcSend("updateChainMapping", updatedChainMapping),
+  getEOAAddress: (privateKey: string) =>
+    ipcInvoke("getEOAAddress", [privateKey]),
   submitMnemonic: (mnemonicWords: string[]) =>
-    ipcRenderer.invoke("submitMnemonic", mnemonicWords),
+    ipcInvoke("submitMnemonic", [mnemonicWords]),
+  getPrivateKey: (mnemonicWords: string[]) =>
+    ipcInvoke("getPrivateKey", [mnemonicWords]),
   getBalances: (accountAddress: string, tokenList: string[], chain: string) =>
-    ipcRenderer.invoke("getBalances", accountAddress, tokenList, chain),
+    ipcInvoke("getBalances", [accountAddress, tokenList, chain]),
+  getNftName: (nftAddress: string, chain: string) =>
+    ipcInvoke("getNftName", [nftAddress, chain]),
+  getNftBalance: (
+    accountAddress: string,
+    nftAddress: string,
+    nftId: string,
+    chain: string
+  ) => ipcInvoke("getNftBalance", [accountAddress, nftAddress, nftId, chain]),
   getNativeBalance: (accountAddress: string, chain: string) =>
-    ipcRenderer.invoke("getNativeBalance", accountAddress, chain),
+    ipcInvoke("getNativeBalance", [accountAddress, chain]),
   getDecimal: (tokenAddress: string, chain: string) =>
-    ipcRenderer.invoke("getDecimal", tokenAddress, chain),
+    ipcInvoke("getDecimal", [tokenAddress, chain]),
   estimateGas: (
+    accountAddress: string,
     tokenAddress: string,
     recipientAddress: string,
     amount: string,
-    chain: string
+    chain: string,
+    privateKey: string
   ) =>
-    ipcRenderer.invoke(
-      "estimateGas",
+    ipcInvoke("estimateGas", [
+      accountAddress,
       tokenAddress,
       recipientAddress,
       amount,
-      chain
-    ),
+      chain,
+      privateKey,
+    ]),
+  estimateGasNftTransfer: (
+    accountAddress: string,
+    recipientAddress: string,
+    nftAddress: string,
+    nftId: string,
+    chain: string
+  ) =>
+    ipcInvoke("estimateGasNftTransfer", [
+      accountAddress,
+      recipientAddress,
+      nftAddress,
+      nftId,
+      chain,
+    ]),
   transferTokens: (
+    accountAddress: string,
     tokenAddress: string,
     recipientAddress: string,
     amount: string,
-    chain: string
+    chain: string,
+    privateKey: string
   ) =>
-    ipcRenderer.invoke(
-      "transferTokens",
+    ipcInvoke("transferTokens", [
+      accountAddress,
       tokenAddress,
       recipientAddress,
       amount,
-      chain
-    ),
+      chain,
+      privateKey,
+    ]),
+  transferNft: (
+    accountAddress: string,
+    recipientAddress: string,
+    nftAddress: string,
+    nftId: string,
+    chain: string,
+    privateKey: string
+  ) =>
+    ipcInvoke("transferNft", [
+      accountAddress,
+      recipientAddress,
+      nftAddress,
+      nftId,
+      chain,
+      privateKey,
+    ]),
 } satisfies Window["electron"]);
 
-function ipcInvoke<Key extends keyof EventPayloadMapping>(
+export function ipcInvoke<Key extends keyof EventPayloadMapping>(
   key: Key,
   args?: any[]
 ): Promise<EventPayloadMapping[Key]> {
-  return electron.ipcRenderer.invoke(key, args);
+  return electron.ipcRenderer.invoke(key, ...(args || []));
 }
 
 function ipcOn<Key extends keyof EventPayloadMapping>(

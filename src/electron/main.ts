@@ -1,17 +1,37 @@
+import dotenv from "dotenv";
 import { app, BrowserWindow, ipcMain } from "electron";
 import { BigNumber } from "ethers";
 import path from "path";
 import { getPreloadPath } from "./pathResolver.js";
 import {
   estimateGas,
+  estimateGasNftTransfer,
   getBalances,
   getDecimal,
+  getEOAAddress,
   getNativeBalance,
-  getStaticData,
+  getNftBalance,
+  getNftName,
+  getPrivateKey,
   submitMnemonic,
+  transferNft,
   transferTokens,
 } from "./resourceManager.js";
-import { isDev } from "./util.js";
+
+// utils
+import { ipcMainOn, isDev } from "./utils.js";
+
+// Load .env file
+dotenv.config();
+
+let chainMapping = {
+  polygon: "https://polygon-rpc.com",
+  optimism: "https://optimism-rpc.publicnode.com",
+  arbitrum: "https://arb1.arbitrum.io/rpc",
+  binance: "https://bsc-dataseed1.binance.org",
+  ethereum: "https://ethereum-rpc.publicnode.com",
+  xdai: "https://rpc.gnosischain.com",
+};
 
 app.on("ready", () => {
   const mainWindow = new BrowserWindow({
@@ -27,62 +47,103 @@ app.on("ready", () => {
     mainWindow.loadFile(path.join(app.getAppPath(), "/dist-react/index.html"));
   }
 
-  // pollResources(mainWindow);
+  // Listen for the updated chain mapping
+  ipcMainOn("updateChainMapping", (updatedChainMapping) => {
+    chainMapping = updatedChainMapping;
+    console.log("Updated Chain Mapping in Main Process:", chainMapping);
+  });
 
-  ipcMain.handle("getStaticData", () => {
-    return getStaticData();
+  // Pass environment variables to React via IPC
+  ipcMain.on("get-env", (event) => {
+    event.reply("env-data", {
+      apiUrl: process.env.REACT_APP_API_URL,
+      apiKey: process.env.REACT_APP_API_KEY,
+    });
+  });
+
+  // Handle getting the EAO address
+  ipcMain.handle("getEOAAddress", async (_, privateKey) => {
+    const EOAAddress = await getEOAAddress(privateKey);
+    return EOAAddress;
   });
 
   // Handle the mnemonic from the frontend
-  ipcMain.handle("submitMnemonic", async (_, mnemonicWords) => {
+  ipcMain.handle("submitMnemonic", async (_, mnemonicWords: string[]) => {
     console.log("Received Mnemonic Words:", mnemonicWords);
-    const result = await submitMnemonic(mnemonicWords); // Process mnemonic
-    return result; // Return the result to the frontend
+    const result: string = await submitMnemonic(mnemonicWords);
+    return result;
   });
-  // ipcMain.handle("getBalances", async (_, accountAddress, tokenList) => {
-  //   const result = await getBalances(accountAddress, tokenList); // Process mnemonic
-  //   return result; // Return the result to the frontend
-  // });
 
-  ipcMain.handle("getBalances", async (_, accountAddress, tokenList, chain) => {
+  // Handle getting the Private Key
+  ipcMain.handle("getPrivateKey", async (_, mnemonicWords) => {
+    const privateKeyResult = await getPrivateKey(mnemonicWords);
+    return privateKeyResult;
+  });
+
+  // Handle all balances in the tokens lists
+  ipcMain.handle(
+    "getBalances",
+    async (_, accountAddress: string, tokenList: string[], chain: string) => {
+      try {
+        const balances = await getBalances(accountAddress, tokenList, chain);
+
+        // Convert BigInt values to strings
+        const readableBalances = balances.map((balance: BigNumber | bigint) =>
+          balance.toString()
+        );
+
+        return readableBalances;
+      } catch (error) {
+        return console.log("Error", error);
+      }
+    }
+  );
+
+  // Handle nft name
+  ipcMain.handle("getNftName", async (_, nftAddress, chain) => {
     try {
-      // Assume getBalancesForAddress is a function that returns the uint256[] array
-      const balances = await getBalances(accountAddress, tokenList, chain);
+      const nftName = await getNftName(nftAddress, chain);
 
-      console.log("balances", balances); // This will log BigInt values like [0n, ...]
-
-      // Convert BigInt values to strings to make them serializable
-      const serializableBalances = balances.map((balance: BigNumber) =>
-        balance.toString()
-      );
-
-      console.log("serializableBalances", serializableBalances);
-
-      return serializableBalances; // Now we return serializable string values
+      return nftName;
     } catch (error) {
       return console.log("Error", error);
     }
   });
 
+  // Handle nft balance for compatible chain ids
+  ipcMain.handle(
+    "getNftBalance",
+    async (_, accountAddress, nftAddress, nftId, chain) => {
+      try {
+        const nftBalance = await getNftBalance(
+          accountAddress,
+          nftAddress,
+          nftId,
+          chain
+        );
+
+        return nftBalance;
+      } catch (error) {
+        return console.log("Error", error);
+      }
+    }
+  );
+
+  // Handle native balances for compatible chain ids
   ipcMain.handle("getNativeBalance", async (_, accountAddress, chain) => {
     try {
-      // Assume getBalancesForAddress is a function that returns the uint256[] array
       const nativeBalance = await getNativeBalance(accountAddress, chain);
 
-      console.log("nativeBalance", nativeBalance); // This will log BigInt values like [0n, ...]
-
-      return nativeBalance; // Now we return serializable string values
+      return nativeBalance;
     } catch (error) {
       return console.log("Error", error);
     }
   });
 
+  // Handle getting the right decimals for tokens
   ipcMain.handle("getDecimal", async (_, tokenAddress, chain) => {
     try {
-      // Assume getBalancesForAddress is a function that returns the uint256[] array
       const decimal = await getDecimal(tokenAddress, chain);
-
-      console.log("decimal", decimal);
 
       return decimal;
     } catch (error) {
@@ -90,18 +151,27 @@ app.on("ready", () => {
     }
   });
 
+  // Handle the gas estimation
   ipcMain.handle(
     "estimateGas",
-    async (_, tokenAddress, recipientAddress, amount, chain) => {
+    async (
+      _,
+      accountAddress,
+      tokenAddress,
+      recipientAddress,
+      amount,
+      chain,
+      privateKey
+    ) => {
       try {
         const estimatedGas = await estimateGas(
+          accountAddress,
           tokenAddress,
           recipientAddress,
           amount,
-          chain
+          chain,
+          privateKey
         );
-
-        console.log("estimatedGas", estimatedGas);
 
         return estimatedGas;
       } catch (error) {
@@ -109,18 +179,77 @@ app.on("ready", () => {
       }
     }
   );
+
+  // Handle the gas estimation for nft transfer
   ipcMain.handle(
-    "transferTokens",
-    async (_, tokenAddress, recipientAddress, amount, chain) => {
+    "estimateGasNftTransfer",
+    async (_, accountAddress, recipientAddress, nftAddress, nftId, chain) => {
       try {
-        const tx = await transferTokens(
-          tokenAddress,
+        const estimatedGas = await estimateGasNftTransfer(
+          accountAddress,
           recipientAddress,
-          amount,
+          nftAddress,
+          nftId,
           chain
         );
 
-        console.log("transferTokens", tx);
+        return estimatedGas;
+      } catch (error) {
+        return console.log("Error", error);
+      }
+    }
+  );
+
+  // Handle the token transfers
+  ipcMain.handle(
+    "transferTokens",
+    async (
+      _,
+      accountAddress,
+      tokenAddress,
+      recipientAddress,
+      amount,
+      chain,
+      privateKey
+    ) => {
+      try {
+        const tx = await transferTokens(
+          accountAddress,
+          tokenAddress,
+          recipientAddress,
+          amount,
+          chain,
+          privateKey
+        );
+
+        return tx;
+      } catch (error) {
+        return console.log("Error", error);
+      }
+    }
+  );
+
+  // Handle the nft transfers
+  ipcMain.handle(
+    "transferNft",
+    async (
+      _,
+      accountAddress,
+      recipientAddress,
+      nftAddress,
+      nftId,
+      chain,
+      privateKey
+    ) => {
+      try {
+        const tx = await transferNft(
+          accountAddress,
+          recipientAddress,
+          nftAddress,
+          nftId,
+          chain,
+          privateKey
+        );
 
         return tx;
       } catch (error) {
@@ -129,3 +258,10 @@ app.on("ready", () => {
     }
   );
 });
+
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") app.quit();
+});
+
+// Expose the chain mapping for other Node.js files to use
+export { chainMapping };

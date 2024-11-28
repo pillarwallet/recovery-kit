@@ -1,13 +1,16 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from "react";
+
+// hooks
 import { useRecoveryKit } from "../hooks/useRecoveryKit";
+
+// components
 import LoadingSpinner from "./LoadingSpinner";
 
 const MnemonicInput = () => {
-  const [seedPhrase, setSeedPhrase] = useState<string[]>(Array(12).fill(""));
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const { setAccountAddress, setStep } = useRecoveryKit();
+  const { setAccountAddress, setStep, seedPhrase, setSeedPhrase } =
+    useRecoveryKit();
 
   const handleWordChange = (index: number, value: string) => {
     const newWords = [...seedPhrase];
@@ -21,9 +24,7 @@ const MnemonicInput = () => {
     setIsLoading(true);
 
     // Send the 12 words to the electron backend
-    const accountAddressRes = await (window as any).electron.submitMnemonic(
-      seedPhrase
-    );
+    const accountAddressRes = await window.electron.submitMnemonic(seedPhrase);
 
     if (
       accountAddressRes?.includes("Error to get the account address:") ||
@@ -47,7 +48,7 @@ const MnemonicInput = () => {
   };
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col w-full">
       <p className="text-sm text-left mb-4">
         Please enter your 12 word seed phrase to continue.
       </p>

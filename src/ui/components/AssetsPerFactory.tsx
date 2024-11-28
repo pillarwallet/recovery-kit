@@ -1,10 +1,18 @@
 import { ethers } from "ethers";
 import { useCallback, useEffect, useState } from "react";
 import { FaRedo } from "react-icons/fa";
+
+// hooks
 import { useRecoveryKit } from "../hooks/useRecoveryKit";
+
+// utils
+import { allNativeTokens } from "../utils";
+
+// components
 import ArbitrumList from "../utils/tokens/arbitrum-tokens.json";
 import BinanceList from "../utils/tokens/binance-tokens.json";
 import EthereumList from "../utils/tokens/ethereum-tokens.json";
+import GnosisList from "../utils/tokens/gnosis-tokens.json";
 import OptimismList from "../utils/tokens/optimism-tokens.json";
 import PolygonList from "../utils/tokens/polygon-tokens.json";
 import LoadingSpinner from "./LoadingSpinner";
@@ -15,6 +23,7 @@ const tokenLists = {
   optimism: OptimismList,
   arbitrum: ArbitrumList,
   binance: BinanceList,
+  xdai: GnosisList,
 };
 
 type AssetsPerFactoryType = {
@@ -22,12 +31,91 @@ type AssetsPerFactoryType = {
 };
 
 const AssetsPerFactory = ({ contractType }: AssetsPerFactoryType) => {
-  const { balances, setBalances, setStep, setContract } = useRecoveryKit();
+  const { balances, setBalances, setStep, setContract, accountAddress } =
+    useRecoveryKit();
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  // TODO: replace with accountAddress hook
-  const accountAddress = "0x19396DE329F9bF5553457956136273c153b62aE4";
+  const [addedAssets, setAddedAssets] = useState<AddedAssets[]>(() => {
+    const storedAssets = localStorage.getItem("addedAssets");
+    return storedAssets
+      ? JSON.parse(storedAssets).filter(
+          (token: AddedAssets) => token.balance > 0
+        )
+      : [];
+  });
+
+  const getTokenBalance = async (
+    tokenAddress: string,
+    chain: string
+  ): Promise<number> => {
+    try {
+      const balance = await window.electron.getBalances(
+        accountAddress || "",
+        [tokenAddress],
+        chain
+      );
+
+      const bigIntBalance = balance[0];
+      const decimal = await window.electron.getDecimal(tokenAddress, chain);
+      const readableBalance = ethers.utils.formatUnits(bigIntBalance, decimal);
+
+      return Number(readableBalance);
+    } catch (error) {
+      console.error("Error fetching balance:", error);
+      return 0;
+    }
+  };
+
+  const getNftBalance = async (
+    nftAddress: string,
+    nftId: string,
+    chain: string
+  ): Promise<number> => {
+    try {
+      const balance = await window.electron.getNftBalance(
+        accountAddress || "",
+        nftAddress,
+        nftId,
+        chain
+      );
+
+      return balance;
+    } catch (error) {
+      console.error("Error fetching balance:", error);
+      return 0;
+    }
+  };
+
+  const refetchBalances = async () => {
+    const updatedAssets = await Promise.all(
+      addedAssets.map(async (asset) => {
+        let updatedBalance = 0;
+
+        if (asset.assetType === "token") {
+          updatedBalance = await getTokenBalance(
+            asset.tokenAddress,
+            asset.chain
+          );
+        } else if (asset.assetType === "nft") {
+          updatedBalance = await getNftBalance(
+            asset.tokenAddress,
+            asset.tokenId || "",
+            asset.chain
+          );
+        }
+
+        return {
+          ...asset,
+          balance: updatedBalance,
+        };
+      })
+    );
+
+    const filteredAssets = updatedAssets.filter((asset) => asset.balance > 0);
+    setAddedAssets(filteredAssets);
+    localStorage.setItem("addedAssets", JSON.stringify(filteredAssets));
+  };
 
   const getAllBalances = useCallback(
     async (tokenList: TokenList[], chain: string): Promise<BalanceInfo[]> => {
@@ -40,12 +128,28 @@ const AssetsPerFactory = ({ contractType }: AssetsPerFactoryType) => {
       while (retries < maxRetries) {
         try {
           const balances = await window.electron.getBalances(
-            accountAddress,
+            accountAddress as string,
             tokenAddresses,
             chain
           );
 
-          return balances
+          const nativeBalance = await window.electron.getNativeBalance(
+            accountAddress as string,
+            chain
+          );
+
+          // Prepare the native token information
+          const nativeTokenInfo: BalanceInfo = {
+            chain,
+            address: "0x0000000000000000000000000000000000000000",
+            decimals: 18,
+            balance: nativeBalance.toString(),
+            name: allNativeTokens[chain as Network].name,
+            symbol: allNativeTokens[chain as Network].symbol,
+            logoURI: "",
+          };
+
+          const tokenBalances = balances
             .map((balance: bigint, index: number) => {
               const token = tokenList[index];
               const readableBalance = ethers.utils.formatUnits(
@@ -65,6 +169,8 @@ const AssetsPerFactory = ({ contractType }: AssetsPerFactoryType) => {
             .filter(
               (tokenInfo: BalanceInfo) => parseFloat(tokenInfo.balance) > 0
             );
+
+          return [nativeTokenInfo, ...tokenBalances];
         } catch (error) {
           retries += 1;
           console.error(
@@ -104,6 +210,7 @@ const AssetsPerFactory = ({ contractType }: AssetsPerFactoryType) => {
   useEffect(() => {
     if (accountAddress) {
       fetchAllBalances();
+      refetchBalances();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accountAddress]);
@@ -124,10 +231,10 @@ const AssetsPerFactory = ({ contractType }: AssetsPerFactoryType) => {
   return (
     <div
       className={`flex flex-col w-full border border-[#3C3C53] rounded-xl px-6 py-4 ${
-        numberOfAssets > 0 && "cursor-pointer"
+        numberOfAssets > 0 && !isLoading && "cursor-pointer"
       }`}
       onClick={
-        numberOfAssets > 0
+        numberOfAssets > 0 && !isLoading
           ? () => {
               setStep(3);
               setContract(contractType);

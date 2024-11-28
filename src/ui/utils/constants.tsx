@@ -15,7 +15,3 @@ export const NATIVE_TOKENS: Record<ChainType, string> = {
   optimism: "OP",
   arbitrum: "ARB",
 };
-
-export const getNativeTokenSymbol = (chain: ChainType) => {
-  return NATIVE_TOKENS[chain];
-};

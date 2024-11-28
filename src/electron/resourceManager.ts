@@ -1,102 +1,99 @@
-import { BrowserWindow } from "electron";
-import { ethers } from "ethers";
-import fs from "fs";
-import os from "os";
-import osUtils from "os-utils";
-import { ipcWebContentsSend } from "./util.js";
+import { BigNumber, ethers } from "ethers";
+import {
+  Chain,
+  createPublicClient,
+  createWalletClient,
+  formatEther,
+  getContract,
+  http,
+  parseUnits,
+} from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { arbitrum, bsc, gnosis, mainnet, optimism, polygon } from "viem/chains";
+import { chainMapping } from "./main.js";
 
-const POLLING_INTERVAL = 500;
+// utils
+import {
+  BALANCES_HELPER_V2_ADDRES,
+  PERSONAL_ACCOUNT_REGISTRY_ADDRESS,
+  processBigNumber,
+} from "./utils.js";
 
-export function pollResources(mainWindow: BrowserWindow) {
-  setInterval(async () => {
-    const cpuUsage = await getCpuUsage();
-    const ramUsage = getRamUsage();
-    const storageData = getStorageData();
-    ipcWebContentsSend("statistics", mainWindow.webContents, {
-      cpuUsage,
-      ramUsage,
-      storageUsage: storageData.usage,
-    });
-  }, POLLING_INTERVAL);
-}
+// TODO - create2Address for Archanova
+// export const create2Address = (EAOAddress: string) => {
+//   const accountAddress = getContractAddress({
+//     bytecode: process.env.BYTECODE_ARCHANOVA_ACCOUNT as `0x${string}`,
+//     from: EAOAddress as `0x${string}`,
+//     opcode: "CREATE2",
+//     salt: EAOAddress as `0x${string}`,
+//   });
 
-export function getStaticData() {
-  const totalStorage = getStorageData().total;
-  const cpuModel = os.cpus()[0].model;
-  const totalMemoryGB = Math.floor(osUtils.totalmem() / 1024);
-
-  return {
-    totalStorage,
-    cpuModel,
-    totalMemoryGB,
-  };
-}
-
-function getCpuUsage(): Promise<number> {
-  return new Promise((resolve) => {
-    osUtils.cpuUsage(resolve);
-  });
-}
-
-function getRamUsage() {
-  return 1 - osUtils.freememPercentage();
-}
-
-function getStorageData() {
-  const stats = fs.statfsSync(process.platform === "win32" ? "C://" : "/");
-  const total = stats.bsize * stats.blocks;
-  const free = stats.bsize * stats.bfree;
-
-  return {
-    total: Math.floor(total / 1_000_000_000),
-    usage: 1 - free / total,
-  };
-}
-
-// const create2Address = (factoryAddress, saltHex, initCode) => {
-//   const create2Addr = ethers.utils.getCreate2Address(
-//     factoryAddress,
-//     "0x630856be5AC2DFE63b6Ae944226B369Fb1e3b848",
-//     ethers.utils.keccak256(initCode)
-//   );
-//   return create2Addr;
+//   return accountAddress;
 // };
+
+const getNetworkViem = (network: Network): Chain => {
+  switch (network) {
+    case "ethereum":
+      return mainnet;
+    case "polygon":
+      return polygon;
+    case "optimism":
+      return optimism;
+    case "arbitrum":
+      return arbitrum;
+    case "xdai":
+      return gnosis;
+    case "binance":
+      return bsc;
+    default:
+      return mainnet;
+  }
+};
+
+export const getEOAAddress = async (privateKey: string): Promise<string> => {
+  try {
+    const providerWallet = new ethers.Wallet(privateKey);
+    return providerWallet.address;
+  } catch (error) {
+    return `Error to get the EOA address:", ${error}`;
+  }
+};
 
 export const getAccountAddress = async (privateKey: string) => {
   try {
     const providerWallet = new ethers.Wallet(privateKey);
 
-    console.log("THE EOA", providerWallet.address);
+    // mainnet by default to get the account address
+    const chainUrl = chainMapping.ethereum;
 
-    const INFURA_URL = `https://mainnet.infura.io/v3/${process.env.REACT_APP_API_KEY}`;
-
-    const abi = await import(
+    const personalRegistryAbi = await import(
       "./contracts/artifacts-etherspot-v1/PersonalAccountRegistry.json",
       {
         with: { type: "json" },
       }
     );
 
-    const PERSONAL_ACCOUNT_REGISTRY_ADDRESS =
-      "0x7EB3A038F25B9F32f8e19A7F0De83D4916030eFa";
-
-    const provider = new ethers.providers.JsonRpcProvider(INFURA_URL);
+    const provider = new ethers.providers.JsonRpcProvider(chainUrl);
 
     const contract = new ethers.Contract(
       PERSONAL_ACCOUNT_REGISTRY_ADDRESS,
-      abi.default.abi,
+      personalRegistryAbi.default.abi,
       provider
     );
 
-    const result = await contract.computeAccountAddress(providerWallet.address);
+    const accountAddress = await contract.computeAccountAddress(
+      providerWallet.address
+    );
 
-    return result;
+    return accountAddress;
   } catch (error) {
     return `Error to get the account address:", ${error}`;
   }
 };
 
-export const submitMnemonic = async (mnemonicWords: string[]) => {
+export const submitMnemonic = async (
+  mnemonicWords: string[]
+): Promise<string> => {
   try {
     const mnemonicPhrase = mnemonicWords.join(" ");
 
@@ -107,6 +104,20 @@ export const submitMnemonic = async (mnemonicWords: string[]) => {
     return accountAddress;
   } catch (error) {
     return `Error processing the 12 words phrase: ${error}`;
+  }
+};
+
+export const getPrivateKey = async (
+  mnemonicWords: string[]
+): Promise<string> => {
+  try {
+    const mnemonicPhrase = mnemonicWords.join(" ");
+
+    const mnemonicWallet = ethers.Wallet.fromMnemonic(mnemonicPhrase);
+
+    return mnemonicWallet.privateKey;
+  } catch (error) {
+    return `Error getting the private key: ${error}`;
   }
 };
 
@@ -145,42 +156,26 @@ export const getBalances = async (
   accountAddress: string,
   tokenList: string[],
   chain: string
-) => {
-  const chainName = () => {
-    const chainMapping: Record<Network, string> = {
-      ethereum: "mainnet",
-      polygon: "polygon-mainnet",
-      optimism: "optimism-mainnet",
-      arbitrum: "arbitrum-mainnet",
-      binance: "bsc-mainnet",
-    };
-
-    return chainMapping[chain as Network] || null;
-  };
+): Promise<BigNumber[]> => {
+  const chainUrl = chainMapping[chain as Network] || null;
 
   try {
-    const chainUrl = chainName();
     if (!chainUrl) {
       throw new Error(`Unsupported chain: ${chain}`);
     }
 
-    const INFURA_URL = `https://${chainUrl}.infura.io/v3/${process.env.REACT_APP_API_KEY}`;
-
-    const abi = await import(
+    const contractAbi = await import(
       "./contracts/artifacts-etherspot-v1/BalancesHelperV2.json",
       {
         with: { type: "json" },
       }
     );
 
-    const BALANCES_HELPER_V2_ADDRESS =
-      "0xe5A160F89f330cc933816E896a3F36376DE0a835";
-
-    const provider = new ethers.providers.JsonRpcProvider(INFURA_URL);
+    const provider = new ethers.providers.JsonRpcProvider(chainUrl);
 
     const contract = new ethers.Contract(
-      BALANCES_HELPER_V2_ADDRESS,
-      abi.default.abi,
+      BALANCES_HELPER_V2_ADDRES,
+      contractAbi.default.abi,
       provider
     );
 
@@ -190,35 +185,23 @@ export const getBalances = async (
 
     return result;
   } catch (error) {
-    return `Error to get the balances for chain: ${chain}, ${error}`;
+    console.error(`Error to get the balances for chain: ${chain}, ${error}`);
+    return [];
   }
 };
 
 export const getNativeBalance = async (
   accountAddress: string,
   chain: string
-) => {
-  const chainName = () => {
-    const chainMapping: Record<Network, string> = {
-      ethereum: "mainnet",
-      polygon: "polygon-mainnet",
-      optimism: "optimism-mainnet",
-      arbitrum: "arbitrum-mainnet",
-      binance: "bsc-mainnet",
-    };
-
-    return chainMapping[chain as Network] || null;
-  };
+): Promise<string | number> => {
+  const chainUrl = chainMapping[chain as Network] || null;
 
   try {
-    const chainUrl = chainName();
     if (!chainUrl) {
       throw new Error(`Unsupported chain: ${chain}`);
     }
 
-    const INFURA_URL = `https://${chainUrl}.infura.io/v3/${process.env.REACT_APP_API_KEY}`;
-
-    const provider = new ethers.providers.JsonRpcProvider(INFURA_URL);
+    const provider = new ethers.providers.JsonRpcProvider(chainUrl);
 
     const nativeTokenBalance = await provider.getBalance(accountAddress);
 
@@ -230,419 +213,487 @@ export const getNativeBalance = async (
   }
 };
 
-export const getDecimal = async (tokenAddress: string, chain: string) => {
-  const chainName = () => {
-    const chainMapping: Record<Network, string> = {
-      ethereum: "mainnet",
-      polygon: "polygon-mainnet",
-      optimism: "optimism-mainnet",
-      arbitrum: "arbitrum-mainnet",
-      binance: "bsc-mainnet",
-    };
-
-    return chainMapping[chain as Network] || null;
-  };
+export const getDecimal = async (
+  tokenAddress: string,
+  chain: string
+): Promise<string | number> => {
+  const chainUrl = chainMapping[chain as Network] || null;
 
   try {
-    const chainUrl = chainName();
     if (!chainUrl) {
       throw new Error(`Unsupported chain: ${chain}`);
     }
 
-    const INFURA_URL = `https://${chainUrl}.infura.io/v3/${process.env.REACT_APP_API_KEY}`;
-
-    // Standard ERC-20 ABI
-    const abi = [
+    const erc20Abi = await import(
+      "./contracts/artifacts-etherspot-v1/ERC20Token.json",
       {
-        constant: true,
-        inputs: [],
-        name: "decimals",
-        outputs: [
-          {
-            name: "",
-            type: "uint8",
-          },
-        ],
-        payable: false,
-        stateMutability: "view",
-        type: "function",
-      },
-    ];
+        with: { type: "json" },
+      }
+    );
 
-    const provider = new ethers.providers.JsonRpcProvider(INFURA_URL);
+    const provider = new ethers.providers.JsonRpcProvider(chainUrl);
 
-    const contract = new ethers.Contract(tokenAddress, abi, provider);
+    const contract = new ethers.Contract(
+      tokenAddress,
+      erc20Abi.default.abi,
+      provider
+    );
 
     const result = await contract.decimals();
 
     return result;
   } catch (error) {
-    return `Error to get the balances for chain: ${chain}, ${error}`;
+    return `Error to get the decimal for token: ${tokenAddress}, ${error}`;
   }
 };
 
 export const estimateGas = async (
+  accountAddress: string,
   tokenAddress: string,
   recipientAddress: string,
   amount: string,
-  chain: string
+  chain: string,
+  privateKey: string
 ): Promise<string> => {
-  const chainName = () => {
-    const chainMapping: Record<string, string> = {
-      ethereum: "mainnet",
-      polygon: "polygon-mainnet",
-      optimism: "optimism-mainnet",
-      arbitrum: "arbitrum-mainnet",
-      binance: "bsc-mainnet",
-    };
+  const chainUrl = chainMapping[chain as Network] || null;
 
-    return chainMapping[chain] || null;
-  };
-
-  console.log("HIHIHI", tokenAddress, recipientAddress, amount, chain);
   try {
-    const chainUrl = chainName();
     if (!chainUrl) {
       throw new Error(`Unsupported chain: ${chain}`);
     }
 
-    const INFURA_URL = `https://${chainUrl}.infura.io/v3/${process.env.REACT_APP_API_KEY}`;
+    const erc20Abi = await import(
+      "./contracts/artifacts-etherspot-v1/ERC20Token.json",
+      {
+        with: { type: "json" },
+      }
+    );
 
-    // ERC20 token abi from ethers.js
-    const abi = [
-      // Read-Only Functions
-      "function balanceOf(address owner) view returns (uint256)",
-      "function decimals() view returns (uint8)",
-      "function symbol() view returns (string)",
-
-      // Authenticated Functions
-      "function transfer(address to, uint amount) returns (bool)",
-
-      "function transferFrom(address sender, address recipient, uint256 amount) returns (bool)",
-
-      // Events
-      "event Transfer(address indexed from, address indexed to, uint amount)",
-    ];
-
-    const provider = new ethers.providers.JsonRpcProvider(INFURA_URL);
-
-    const contract = new ethers.Contract(tokenAddress, abi, provider);
-
-    const pk = process.env.REACT_APP_PRIVATE_KEY || "";
-
-    const wallet = new ethers.Wallet(pk, provider);
-
-    const decimals = await contract.decimals();
-
-    const amountInUnits = ethers.utils.parseUnits("1", decimals);
-
-    // Estimate gas
-    const gasEstimate = await contract
-      .connect(wallet)
-      .estimateGas.transfer(recipientAddress, amountInUnits);
-
-    // Get current gas price
-    const gasPrice = await provider.getGasPrice();
-
-    // Calculate total cost
-    const totalCost = gasEstimate.mul(gasPrice);
-
-    // Convert total cost to readable Native Gas value
-    const totalCostInEth = ethers.utils.formatEther(totalCost);
-
-    return totalCostInEth;
-  } catch (error) {
-    return `Error estimating gas for transfer: ${error}`;
-  }
-};
-
-export const transferTokens = async (
-  tokenAddress: string,
-  recipientAddress: string,
-  amount: string,
-  chain: string
-): Promise<string> => {
-  const chainName = () => {
-    const chainMapping: Record<string, string> = {
-      ethereum: "mainnet",
-      polygon: "polygon-mainnet",
-      optimism: "optimism-mainnet",
-      arbitrum: "arbitrum-mainnet",
-      binance: "bsc-mainnet",
-    };
-
-    return chainMapping[chain] || null;
-  };
-
-  console.log("HIHIHI", tokenAddress, recipientAddress, amount, chain);
-  try {
-    const chainUrl = chainName();
-    if (!chainUrl) {
-      throw new Error(`Unsupported chain: ${chain}`);
-    }
-
-    const INFURA_URL = `https://${chainUrl}.infura.io/v3/${process.env.REACT_APP_API_KEY}`;
-
-    // ERC20 token abi from ethers.js
-    const abi = [
-      // Read-Only Functions
-      "function balanceOf(address owner) view returns (uint256)",
-      "function decimals() view returns (uint8)",
-      "function symbol() view returns (string)",
-
-      // Authenticated Functions
-      "function transfer(address to, uint amount) returns (bool)",
-
-      "function transferFrom(address sender, address recipient, uint256 amount) returns (bool)",
-
-      // Events
-      "event Transfer(address indexed from, address indexed to, uint amount)",
-    ];
-
-    const abiPR = await import(
+    const personalRegistryAbi = await import(
       "./contracts/artifacts-etherspot-v1/PersonalAccountRegistry.json",
       {
         with: { type: "json" },
       }
     );
 
-    const PERSONAL_ACCOUNT_REGISTRY_ADDRESS =
-      "0x7EB3A038F25B9F32f8e19A7F0De83D4916030eFa";
+    const client = createPublicClient({
+      chain: getNetworkViem(chain as Network),
+      transport: http(chainUrl),
+    });
 
-    const provider = new ethers.providers.JsonRpcProvider(INFURA_URL);
+    const wallet = createWalletClient({
+      chain: getNetworkViem(chain as Network),
+      transport: http(chainUrl),
+      account: privateKeyToAccount(privateKey as `0x${string}`),
+    });
 
-    const tokenContract = new ethers.Contract(tokenAddress, abi, provider);
+    const tokenContract = getContract({
+      address: tokenAddress as `0x${string}`,
+      abi: erc20Abi.default.abi,
+      client: wallet,
+    });
 
-    const accountContract = new ethers.Contract(
-      PERSONAL_ACCOUNT_REGISTRY_ADDRESS,
-      abiPR.default.abi,
-      provider
+    const decimals = await tokenContract.read.decimals();
+
+    const amountInUnits = parseUnits(amount, decimals as number);
+
+    // Encode the parameters
+    const iface = new ethers.utils.Interface([
+      "function transfer(address to, uint256 amount)",
+    ]);
+
+    // Encode the function data
+    const calldata = iface.encodeFunctionData("transfer", [
+      recipientAddress,
+      amountInUnits,
+    ]);
+
+    const EOAAddress = await getEOAAddress(privateKey);
+
+    const gasEstimate = await client.estimateContractGas({
+      address: PERSONAL_ACCOUNT_REGISTRY_ADDRESS as `0x${string}`,
+      abi: personalRegistryAbi.default.abi,
+      functionName: "executeAccountTransaction",
+      args: [accountAddress, tokenAddress, "0", calldata],
+      account: EOAAddress as `0x${string}`,
+    });
+
+    const gasPriceInWei = await client.getGasPrice();
+
+    const totalCostInWei = gasEstimate * gasPriceInWei;
+
+    const totalCostInNativeToken = ethers.utils.formatEther(totalCostInWei);
+
+    return totalCostInNativeToken;
+  } catch (error) {
+    return `Error estimating gas for transfer: ${error}`;
+  }
+};
+
+export const transferTokens = async (
+  accountAddress: string,
+  tokenAddress: string,
+  recipientAddress: string,
+  amount: string,
+  chain: string,
+  privateKey: string
+): Promise<string> => {
+  const chainUrl = chainMapping[chain as Network] || null;
+
+  if (!chainUrl) {
+    throw new Error(`Unsupported chain: ${chain}`);
+  }
+
+  try {
+    const erc20Abi = await import(
+      "./contracts/artifacts-etherspot-v1/ERC20Token.json",
+      {
+        with: { type: "json" },
+      }
     );
 
-    const pk = process.env.REACT_APP_PRIVATE_KEY || "";
+    const personalRegistryAbi = await import(
+      "./contracts/artifacts-etherspot-v1/PersonalAccountRegistry.json",
+      {
+        with: { type: "json" },
+      }
+    );
 
-    const iface = new ethers.utils.Interface(abi);
+    const client = createPublicClient({
+      chain: getNetworkViem(chain as Network),
+      transport: http(chainUrl),
+    });
 
-    const recipient = "0x3788bb31d134D96399744B7A423066A9258946A2";
-    const amount = ethers.utils.parseUnits("1", 18);
+    const wallet = createWalletClient({
+      chain: getNetworkViem(chain as Network),
+      transport: http(chainUrl),
+      account: privateKeyToAccount(privateKey as `0x${string}`),
+    });
 
-    const data = iface.encodeFunctionData("transfer", [recipient, amount]);
+    const accountContract = getContract({
+      address: PERSONAL_ACCOUNT_REGISTRY_ADDRESS as `0x${string}`,
+      abi: personalRegistryAbi.default.abi,
+      client: wallet,
+    });
 
-    console.log("Encoded data:", data);
+    const tokenContract = getContract({
+      address: tokenAddress as `0x${string}`,
+      abi: erc20Abi.default.abi,
+      client: wallet,
+    });
 
-    const wallet = new ethers.Wallet(pk, provider);
+    const decimals = await tokenContract.read.decimals();
 
-    const decimals = await tokenContract.decimals();
+    const amountInUnits = parseUnits(amount, decimals as number);
 
-    const amountInUnits = ethers.utils.parseUnits("1", decimals);
+    // Encode the parameters
+    const iface = new ethers.utils.Interface([
+      "function transfer(address to, uint256 amount)",
+    ]);
 
-    console.log("info", recipientAddress, amountInUnits, wallet);
+    // Encode the function data
+    const calldata = iface.encodeFunctionData("transfer", [
+      recipientAddress,
+      amountInUnits,
+    ]);
 
-    const tx = await accountContract
-      .connect(wallet)
-      .executeAccountTransaction(
-        "0x19396DE329F9bF5553457956136273c153b62aE4",
-        "0xa6b37fC85d870711C56FbcB8afe2f8dB049AE774",
-        "0",
-        "0xa9059cbb0000000000000000000000003788bb31d134d96399744b7a423066a9258946a2000000000000000000000000000000000000000000000000016345785d8a0000"
-      );
+    const tx = await accountContract.write.executeAccountTransaction([
+      accountAddress,
+      tokenAddress,
+      "0",
+      calldata,
+    ]);
 
-    console.log("Transaction sent?", tx);
+    const receipt = await client.waitForTransactionReceipt({
+      hash: tx,
+    });
 
-    const receipt = await tx.wait();
-
-    console.log("Transaction successful??", receipt);
-
-    return `Transaction successful with hash: ${receipt.transactionHash}`;
+    return receipt.transactionHash;
   } catch (error) {
     return `Error transferring tokens: ${error}`;
   }
 };
 
-// async function connectToSigner() {
-//   const provider = new ethers.providers.JsonRpcProvider(
-//     `https://polygon-mainnet.infura.io/v3/${process.env.REACT_APP_API_KEY}`
-//   );
+// TO DO - use it in future versions
+export const getNftName = async (
+  nftAddress: string,
+  chain: string
+): Promise<number | undefined> => {
+  const chainUrl = chainMapping[chain as Network] || null;
 
-//   // const getSigner = provider.getSigner(
-//   //   "0x19396DE329F9bF5553457956136273c153b62aE4"
-//   // );
+  if (!chainUrl) {
+    console.error(`Unsupported chain: ${chain}`);
+    return 0;
+  }
 
-//   // return getSigner;
-//   // console.log("GET SIGNER", getSigner);
+  try {
+    // ERC-721 or ERC-1155 ABI
+    const abi = ["function name() view returns (string)"];
 
-//   const wallet = new ethers.Wallet(
-//     "0xf408bbf7a65bc51f12d1663fa318105befc2af27be4127b50f5106f09c734adf",
-//     provider
-//   );
+    const provider = new ethers.providers.JsonRpcProvider(chainUrl);
 
-//   return wallet;
-// }
+    const contract = new ethers.Contract(nftAddress, abi, provider);
 
-// export const transferTokens = async (
-//   tokenAddress: string,
-//   recipientAddress: string,
-//   amount: string,
-//   chain: string
-// ) => {
-//   try {
-//     const provider = new ethers.providers.JsonRpcProvider(
-//       `https://polygon-mainnet.infura.io/v3/${process.env.REACT_APP_API_KEY}`
-//     );
+    const nftName = await contract.name();
+    return nftName;
+  } catch (error) {
+    console.error(`Unexpected error fetching name for ${nftAddress}: ${error}`);
+    return undefined;
+  }
+};
 
-//     const wallet = new ethers.Wallet(
-//       "0xf408bbf7a65bc51f12d1663fa318105befc2af27be4127b50f5106f09c734adf",
-//       provider
-//     );
+export const getNftBalance = async (
+  accountAddress: string,
+  nftAddress: string,
+  nftId: string,
+  chain: string
+): Promise<number> => {
+  const chainUrl = chainMapping[chain as Network] || null;
 
-//     const personalAccountRegistryAddress =
-//       "0x7EB3A038F25B9F32f8e19A7F0De83D4916030eFa";
+  if (!chainUrl) {
+    console.error(`Unsupported chain: ${chain}`);
+    return 0;
+  }
 
-//     const abiPR = await import(
-//       "./contracts/artifacts-etherspot-v1/PersonalAccountRegistry.json",
-//       {
-//         with: { type: "json" },
-//       }
-//     );
+  try {
+    const abiERC721 = await import(
+      "./contracts/artifacts-etherspot-v1/ERC721.json",
+      {
+        with: { type: "json" },
+      }
+    );
 
-//     const personalAccountRegistryContract = new ethers.Contract(
-//       personalAccountRegistryAddress,
-//       abiPR.default.abi,
-//       wallet
-//     );
+    const abiERC1155 = await import(
+      "./contracts/artifacts-etherspot-v1/ERC1155.json",
+      {
+        with: { type: "json" },
+      }
+    );
 
-//     // Encode the ERC20 transfer data (using ethers.js ABI encoding)
-//     const tokenInterface = new ethers.utils.Interface([
-//       "function transfer(address to, uint256 value) public returns (bool)",
-//     ]);
-//     // const tokenInterface = new ethers.utils.Interface([
-//     //   "function transferFrom(address from, address to, uint256 value) public returns (bool)",
-//     // ]);
-//     const data = tokenInterface.encodeFunctionData("transfer", [
-//       "0x3788bb31d134D96399744B7A423066A9258946A2",
-//       "100000000000000000",
-//     ]);
+    const provider = new ethers.providers.JsonRpcProvider(chainUrl);
 
-//     console.log("POLYGON ETHER", ethers.utils.parseUnits("0.1", 18));
+    const contractERC721 = new ethers.Contract(
+      nftAddress,
+      abiERC721.default,
+      provider
+    );
 
-//     console.log("THE DATA", data);
+    const contractERC1155 = new ethers.Contract(
+      nftAddress,
+      abiERC1155.default,
+      provider
+    );
 
-//     const value = ethers.utils.parseUnits("0.1", 18);
+    try {
+      // Attempt ERC721 balance
+      const resultERC721 = await contractERC721.balanceOf(accountAddress);
+      return processBigNumber(resultERC721);
+    } catch (errorERC721) {
+      console.warn(`ERC721 balance fetch failed: ${errorERC721}`);
 
-//     console.log("VALUE ETH", value.toString());
-//     const tx = await personalAccountRegistryContract.executeAccountTransaction(
-//       "0x19396DE329F9bF5553457956136273c153b62aE4",
-//       "0xa6b37fC85d870711C56FbcB8afe2f8dB049AE774",
-//       "100000000000000000",
-//       data
-//     );
+      // Fallback to ERC1155
+      try {
+        const resultERC1155 = await contractERC1155.balanceOf(
+          accountAddress,
+          nftId
+        );
+        return processBigNumber(resultERC1155);
+      } catch (errorERC1155) {
+        console.error(`ERC1155 balance fetch also failed: ${errorERC1155}`);
+        return 0;
+      }
+    }
+  } catch (error) {
+    console.error(
+      `Unexpected error fetching balances for chain ${chain}: ${error}`
+    );
+    return 0;
+  }
+};
 
-//     await tx.wait();
-//     console.log("Tokens transferred successfully");
-//   } catch (error) {
-//     console.error("Error transferring tokens:", error);
-//   }
-// };
+export const estimateGasNftTransfer = async (
+  accountAddress: string,
+  recipientAddress: string,
+  nftAddress: string,
+  nftId: string,
+  chain: string
+): Promise<string> => {
+  const chainUrl = chainMapping[chain as Network] || null;
 
-// export const transferTokens = async (
-//   tokenAddress: string,
-//   recipientAddress: string,
-//   amount: string,
-//   chain: stringc
-// ): Promise<string> => {
-//   const chainName = () => {
-//     const chainMapping: Record<string, string> = {
-//       ethereum: "mainnet",
-//       polygon: "polygon-mainnet",
-//       optimism: "optimism-mainnet",
-//       arbitrum: "arbitrum-mainnet",
-//       binance: "bsc-mainnet",
-//     };
+  if (!chainUrl) {
+    throw new Error(`Unsupported chain: ${chain}`);
+  }
 
-//     return chainMapping[chain] || null;
-//   };
+  try {
+    const erc721Abi = await import(
+      "./contracts/artifacts-etherspot-v1/ERC721.json",
+      {
+        with: { type: "json" },
+      }
+    );
 
-//   try {
-//     const chainUrl = chainName();
-//     if (!chainUrl) {
-//       throw new Error(`Unsupported chain: ${chain}`);
-//     }
+    const erc1155Abi = await import(
+      "./contracts/artifacts-etherspot-v1/ERC1155.json",
+      {
+        with: { type: "json" },
+      }
+    );
 
-//     const INFURA_URL = `https://${chainUrl}.infura.io/v3/${process.env.REACT_APP_API_KEY}`;
+    const client = createPublicClient({
+      chain: getNetworkViem(chain as Network),
+      transport: http(chainUrl),
+    });
 
-//     // ERC20 token abi from ethers.js
-//     const abi = [
-//       // Read-Only Functions
-//       "function balanceOf(address owner) view returns (uint256)",
-//       "function decimals() view returns (uint8)",
-//       "function symbol() view returns (string)",
+    // Try ERC721 gas estimation
+    try {
+      const gasEstimateERC721 = await client.estimateContractGas({
+        address: nftAddress as `0x${string}`,
+        abi: erc721Abi.default,
+        functionName: "safeTransferFrom",
+        args: [accountAddress, recipientAddress, nftId],
+        account: accountAddress as `0x${string}`,
+      });
 
-//       // Authenticated Functions
-//       "function transfer(address to, uint amount) returns (bool)",
+      const gasPrice = await client.getGasPrice();
 
-//       "function transferFrom(address sender, address recipient, uint256 amount) returns (bool)",
+      const totalCostInWei = gasEstimateERC721 * gasPrice;
 
-//       // Events
-//       "event Transfer(address indexed from, address indexed to, uint amount)",
-//     ];
+      const totalCostInGasToken = formatEther(totalCostInWei);
 
-//     const abiPR = await import(
-//       "./contracts/artifacts-etherspot-v1/PersonalAccountRegistry.json",
-//       {
-//         with: { type: "json" },
-//       }
-//     );
+      return totalCostInGasToken;
+    } catch (errorERC721) {
+      console.warn(`ERC721 gas estimation failed: ${errorERC721}`);
+      console.warn("Attempting ERC1155 gas estimation...");
 
-//     const PERSONAL_ACCOUNT_REGISTRY_ADDRESS =
-//       "0x7EB3A038F25B9F32f8e19A7F0De83D4916030eFa";
+      // Fallback to ERC1155 gas estimation
+      try {
+        const gasEstimateERC1155 = await client.estimateContractGas({
+          address: nftAddress as `0x${string}`,
+          abi: erc1155Abi.default,
+          functionName: "safeTransferFrom",
+          args: [
+            accountAddress,
+            recipientAddress,
+            nftId,
+            1, // Quantity: assume 1 for ERC1155?
+            "0x", // Additional calldata
+          ],
+          account: accountAddress as `0x${string}`,
+        });
+        const gasPrice = await client.getGasPrice();
 
-//     const provider = new ethers.providers.JsonRpcProvider(INFURA_URL);
+        const totalCostInWei = gasEstimateERC1155 * gasPrice;
 
-//     const signer = provider.getSigner(
-//       "0x19396DE329F9bF5553457956136273c153b62aE4"
-//     );
+        const totalCostInGasToken = formatEther(totalCostInWei);
 
-//     console.log("THE SIGNER", signer);
-//     const tokenContract = new ethers.Contract(tokenAddress, abi, provider);
+        return totalCostInGasToken;
+      } catch (errorERC1155) {
+        console.error(`ERC1155 gas estimation also failed: ${errorERC1155}`);
+        return `Error estimating gas: both ERC721 and ERC1155 failed.`;
+      }
+    }
+  } catch (error) {
+    return `Error estimating gas for transfer: ${error}`;
+  }
+};
 
-//     const accountContract = new ethers.Contract(
-//       PERSONAL_ACCOUNT_REGISTRY_ADDRESS,
-//       abiPR.default.abi,
-//       provider
-//     );
+export const transferNft = async (
+  accountAddress: string,
+  recipientAddress: string,
+  nftAddress: string,
+  nftId: string,
+  chain: string,
+  privateKey: string
+): Promise<string> => {
+  const chainUrl = chainMapping[chain as Network] || null;
 
-//     const pk = process.env.REACT_APP_PRIVATE_KEY || "";
+  if (!chainUrl) {
+    throw new Error(`Unsupported chain: ${chain}`);
+  }
 
-//     // const iface = new ethers.utils.Interface(abi);
+  try {
+    const personalRegistryAbi = await import(
+      "./contracts/artifacts-etherspot-v1/PersonalAccountRegistry.json",
+      {
+        with: { type: "json" },
+      }
+    );
 
-//     // const recipient = "0x3788bb31d134D96399744B7A423066A9258946A2";
-//     // const amount = ethers.utils.parseUnits("1.0", 18);
+    const client = createPublicClient({
+      chain: getNetworkViem(chain as Network),
+      transport: http(chainUrl),
+    });
 
-//     // const data = iface.encodeFunctionData("transfer", [recipient, amount]);
+    const wallet = createWalletClient({
+      chain: getNetworkViem(chain as Network),
+      transport: http(chainUrl),
+      account: privateKeyToAccount(privateKey as `0x${string}`),
+    });
 
-//     // console.log("Encoded data:", data);
+    const accountContract = getContract({
+      address: PERSONAL_ACCOUNT_REGISTRY_ADDRESS as `0x${string}`,
+      abi: personalRegistryAbi.default.abi,
+      client: wallet,
+    });
 
-//     const wallet = new ethers.Wallet(pk, provider);
+    // Encode the parameters
+    const ifaceERC721 = new ethers.utils.Interface([
+      "function safeTransferFrom(address from, address to, uint256 tokenId)",
+    ]);
 
-//     const decimals = await tokenContract.decimals();
+    const ifaceERC1155 = new ethers.utils.Interface([
+      "function safeTransferFrom(address from, address to, uint256 id, uint256 amount, bytes data)",
+    ]);
 
-//     const amountInUnits = ethers.utils.parseUnits("1", decimals);
+    // Encode the function data
+    const calldataERC721 = ifaceERC721.encodeFunctionData("safeTransferFrom", [
+      accountAddress,
+      recipientAddress,
+      nftId,
+    ]);
 
-//     console.log("prout hihi", recipientAddress, amountInUnits, wallet);
+    const calldataERC1155 = ifaceERC1155.encodeFunctionData(
+      "safeTransferFrom",
+      [accountAddress, recipientAddress, nftId, "1", "0x"]
+    );
 
-//     const tx = await accountContract
-//       .connect(signer)
-//       .executeAccountTransaction(
-//         "0x19396DE329F9bF5553457956136273c153b62aE4",
-//         "0x3788bb31d134D96399744B7A423066A9258946A2",
-//         "1",
-//         "0x"
-//       );
+    // Try ERC721 transfer
+    try {
+      const tx = await accountContract.write.executeAccountTransaction([
+        accountAddress,
+        nftAddress,
+        "0",
+        calldataERC721,
+      ]);
 
-//     const receipt = await tx.wait();
+      const receipt = await client.waitForTransactionReceipt({
+        hash: tx,
+      });
 
-//     return `Transaction successful with hash: ${receipt.transactionHash}`;
-//   } catch (error) {
-//     return `Error transferring tokens: ${error}`;
-//   }
-// };
+      return receipt.transactionHash;
+    } catch (errorERC721) {
+      console.warn(`ERC721 transfer failed: ${errorERC721}`);
+
+      // Fallback to ERC1155 transfer
+      try {
+        const tx = await accountContract.write.executeAccountTransaction([
+          accountAddress,
+          nftAddress,
+          "0",
+          calldataERC1155,
+        ]);
+
+        const receipt = await client.waitForTransactionReceipt({
+          hash: tx,
+        });
+
+        return receipt.transactionHash;
+      } catch (errorERC1155) {
+        console.error(`ERC1155 transfer also failed: ${errorERC1155}`);
+        return `Error transferring NFT: both ERC721 and ERC1155 failed.`;
+      }
+    }
+  } catch (error) {
+    return `Error executing NFT transfer: ${error}`;
+  }
+};

@@ -1,4 +1,6 @@
 import { useContext } from "react";
+
+// provider
 import { RecoveryKitContext } from "../context/RecoveryKitProvider";
 
 export const useRecoveryKit = () => {

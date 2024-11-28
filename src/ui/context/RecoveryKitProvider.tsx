@@ -1,10 +1,10 @@
 import React, { ReactNode, createContext, useState } from "react";
 
-type ContractsType = "etherspot-v1" | "archanova";
-
 interface RecoveryKitContextType {
   accountAddress: string | null;
   setAccountAddress: React.Dispatch<React.SetStateAction<string | null>>;
+  seedPhrase: string[];
+  setSeedPhrase: React.Dispatch<React.SetStateAction<string[]>>;
   step: number;
   setStep: React.Dispatch<React.SetStateAction<number>>;
   balances: BalancesByChain;
@@ -23,6 +23,7 @@ export const RecoveryKitContext = createContext<
 
 const RecoveryKitProvider = ({ children }: { children: ReactNode }) => {
   const [accountAddress, setAccountAddress] = useState<string | null>(null);
+  const [seedPhrase, setSeedPhrase] = useState<string[]>(Array(12).fill(""));
   const [balances, setBalances] = useState<BalancesByChain>({});
   const [step, setStep] = useState<number>(1);
   const [contract, setContract] = useState<ContractsType>();
@@ -35,6 +36,8 @@ const RecoveryKitProvider = ({ children }: { children: ReactNode }) => {
       value={{
         accountAddress,
         setAccountAddress,
+        seedPhrase,
+        setSeedPhrase,
         step,
         setStep,
         balances,
