@@ -66,7 +66,6 @@ app.on("ready", () => {
   // Handle the mnemonic from the frontend
   ipcMain.handle("submitMnemonic", async (_, mnemonicWords: string[]) => {
     try {
-      console.log("Received Mnemonic Words:", mnemonicWords);
       const result: string = await submitMnemonic(mnemonicWords);
       return result;
     } catch (error) {

@@ -13,8 +13,8 @@ const TransferToken = () => {
   const [transferAddress, setTransferAddress] = useState<string>("");
   const [gasEstimation, setGasEstimation] = useState<string>("");
   const [nativeTokenBalance, setNativeTokenBalance] = useState<number>();
-
   const [transferStatus, setTransferStatus] = useState<string | null>(null);
+  const [EOAWalletAddress, setEOAWalletAddress] = useState<string>("");
 
   const estimateGas = async (
     accountAddress: string,
@@ -78,13 +78,14 @@ const TransferToken = () => {
 
     const privateKey = await window.electron.getPrivateKey(seedPhrase);
 
-    const EAOAddress = await window.electron.getEOAAddress(privateKey);
+    const EOAAddress = await window.electron.getEOAAddress(privateKey);
 
     const nativeToken = await window.electron.getNativeBalance(
-      EAOAddress as string,
+      EOAAddress as string,
       selectedAsset?.chain as string
     );
 
+    setEOAWalletAddress(EOAAddress as string);
     setNativeTokenBalance(nativeToken as number);
   };
 
@@ -141,15 +142,19 @@ const TransferToken = () => {
   return (
     <div className="flex flex-col gap-4 w-full">
       <p className="text-lg text-left">
-        Transfer{" "}
+        Transfer {selectedAsset?.balance || 0}{" "}
         {selectedAsset && "name" in selectedAsset
-          ? `${selectedAsset.name} ${selectedAsset.symbol}`
+          ? `${selectedAsset.name} (${selectedAsset.symbol})`
           : `${selectedAsset?.tokenAddress.substring(
               0,
               6
             )}...${selectedAsset?.tokenAddress.substring(
               selectedAsset.tokenAddress.length - 6
-            )}`}
+            )} on ${selectedAsset?.chain}`}{" "}
+        on{" "}
+        <span className="capitalize">
+          {selectedAsset?.chain === "xdai" ? "gnosis" : selectedAsset?.chain}
+        </span>
       </p>
       <p className="text-sm text-left">Enter the destination for this asset</p>
       <form onSubmit={handleSubmit} className="flex flex-col gap-2">
@@ -163,7 +168,7 @@ const TransferToken = () => {
             className="w-full h-8 !px-2 text-black !text-base !bg-white !rounded-md outline-none focus:outline-none focus:ring-0 focus:border focus:border-[#3C3C53]"
           />
         </label>
-        {!isAddress(transferAddress) ? (
+        {!isAddress(transferAddress) && (transferAddress as string) !== "" ? (
           <p className="text-sm text-left">
             The address is not valid. Please enter a valid wallet address.
           </p>
@@ -194,13 +199,19 @@ const TransferToken = () => {
             <p className="text-sm text-left">
               You do not have enough{" "}
               {getNativeTokenSymbol(selectedAsset?.chain as ChainType)} in your
-              Wallet to execute this transaction. Please make sure your EOA
-              Wallet has enough gas tokens.
+              EOA Wallet ({EOAWalletAddress}) to execute this transaction.
+              Please make sure your EOA Wallet has enough gas tokens.
+            </p>
+          )}
+          {!Number(gasEstimation) && (
+            <p className="text-sm text-left">
+              Oops, something went wrong and we are unable to estimate gas for
+              this transaction. Please try again.
             </p>
           )}
         </div>
       )}
-      {gasEstimation && !isNotEnoughGasToken && (
+      {gasEstimation && (!isNotEnoughGasToken || !Number(gasEstimation)) && (
         <button
           onClick={handleTransfer}
           className="text-base bg-[#4CAF50] hover:bg-[#66BB6A] px-6 py-2 rounded-xl text-white mt-4"
