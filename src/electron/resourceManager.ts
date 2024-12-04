@@ -1,8 +1,10 @@
 import { BigNumber, ethers } from "ethers";
 import {
   Chain,
+  PublicClient,
   createPublicClient,
   createWalletClient,
+  encodeFunctionData,
   formatEther,
   getContract,
   http,
@@ -40,8 +42,16 @@ const getNetworkViem = (network: Network): Chain => {
 
 export const getEOAAddress = async (privateKey: string): Promise<string> => {
   try {
-    const providerWallet = new ethers.Wallet(privateKey);
-    return providerWallet.address;
+    // mainnet by default to get the account address
+    const chainUrl = chainMapping.ethereum;
+
+    const providerWallet = createWalletClient({
+      account: privateKeyToAccount(privateKey as `0x${string}`),
+      chain: mainnet,
+      transport: http(chainUrl),
+    });
+
+    return providerWallet.account.address;
   } catch (error) {
     return `Error to get the EOA address:, ${error}`;
   }
@@ -49,10 +59,18 @@ export const getEOAAddress = async (privateKey: string): Promise<string> => {
 
 export const getAccountAddress = async (privateKey: string) => {
   try {
-    const providerWallet = new ethers.Wallet(privateKey);
-
     // mainnet by default to get the account address
     const chainUrl = chainMapping.ethereum;
+
+    if (!chainUrl) {
+      throw new Error(`Unsupported chain: ${chainUrl}`);
+    }
+
+    const providerWallet = createWalletClient({
+      account: privateKeyToAccount(privateKey as `0x${string}`),
+      chain: mainnet,
+      transport: http(chainUrl),
+    });
 
     const personalRegistryAbi = await import(
       "./contracts/artifacts-etherspot-v1/PersonalAccountRegistry.json",
@@ -61,24 +79,29 @@ export const getAccountAddress = async (privateKey: string) => {
       }
     );
 
-    const provider = new ethers.providers.JsonRpcProvider(chainUrl);
+    const provider = createPublicClient({
+      chain: getNetworkViem("ethereum"),
+      transport: http(chainUrl),
+    });
 
-    const contract = new ethers.Contract(
-      ETHERSPOT_V1_PERSONAL_ACCOUNT_REGISTRY_ADDRESS,
-      personalRegistryAbi.default.abi,
-      provider
-    );
+    const accountContract = getContract({
+      address: ETHERSPOT_V1_PERSONAL_ACCOUNT_REGISTRY_ADDRESS as `0x${string}`,
+      abi: personalRegistryAbi.default.abi,
+      client: provider,
+    });
 
-    const accountAddress = await contract.computeAccountAddress(
-      providerWallet.address
-    );
+    const accountAddress = await accountContract.read.computeAccountAddress([
+      providerWallet.account.address,
+    ]);
 
-    return accountAddress;
+    return accountAddress as string;
   } catch (error) {
     return `Error to get the account address:, ${error}`;
   }
 };
 
+// Using the ethers librairy because it allows to get the private key from the mnemonic wallet
+// while Viem librairy does not provide the private key from the mnemonic wallet
 export const submitMnemonic = async (
   mnemonicWords: string[]
 ): Promise<string> => {
@@ -95,6 +118,8 @@ export const submitMnemonic = async (
   }
 };
 
+// Using the ethers librairy because it allows to get the private key from the mnemonic wallet
+// while Viem librairy does not provide the private key from the mnemonic wallet
 export const getPrivateKey = async (
   mnemonicWords: string[]
 ): Promise<string> => {
@@ -110,12 +135,9 @@ export const getPrivateKey = async (
 };
 
 // Function to check if an address is a contract
-async function isContract(
-  address: string,
-  provider: ethers.providers.JsonRpcProvider
-) {
+async function isContract(address: string, provider: PublicClient) {
   try {
-    const code = await provider.getCode(address);
+    const code = await provider.getCode({ address: address as `0x${string}` });
     if (code !== "0x") return true;
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (e) {
@@ -124,10 +146,7 @@ async function isContract(
 }
 
 // Function to filter out invalid addresses
-async function filterValidTokens(
-  tokens: string[],
-  provider: ethers.providers.JsonRpcProvider
-) {
+async function filterValidTokens(tokens: string[], provider: PublicClient) {
   const validTokens = [];
   for (const token of tokens) {
     if (
@@ -159,19 +178,25 @@ export const getBalances = async (
       }
     );
 
-    const provider = new ethers.providers.JsonRpcProvider(chainUrl);
+    const provider = createPublicClient({
+      chain: getNetworkViem(chain as Network),
+      transport: http(chainUrl),
+    });
 
-    const contract = new ethers.Contract(
-      ETHERSPOT_V1_BALANCES_HELPER_V2_ADDRESS,
-      contractAbi.default.abi,
-      provider
-    );
+    const contract = getContract({
+      address: ETHERSPOT_V1_BALANCES_HELPER_V2_ADDRESS as `0x${string}`,
+      abi: contractAbi.default.abi,
+      client: provider,
+    });
 
     const validTokens = await filterValidTokens(tokenList, provider);
 
-    const result = await contract.getBalances([accountAddress], validTokens);
+    const result = await contract.read.getBalances([
+      [accountAddress],
+      validTokens,
+    ]);
 
-    return result;
+    return result as BigNumber[];
   } catch (error) {
     console.error(`Error to get the balances for chain: ${chain}, ${error}`);
     return [];
@@ -189,11 +214,16 @@ export const getNativeBalance = async (
       throw new Error(`Unsupported chain: ${chain}`);
     }
 
-    const provider = new ethers.providers.JsonRpcProvider(chainUrl);
+    const provider = createPublicClient({
+      chain: getNetworkViem(chain as Network),
+      transport: http(chainUrl),
+    });
 
-    const nativeTokenBalance = await provider.getBalance(accountAddress);
+    const nativeTokenBalance = await provider.getBalance({
+      address: accountAddress as `0x${string}`,
+    });
 
-    const balanceInEther = ethers.utils.formatEther(nativeTokenBalance);
+    const balanceInEther = formatEther(nativeTokenBalance);
 
     return Number(balanceInEther);
   } catch (error) {
@@ -219,17 +249,20 @@ export const getDecimal = async (
       }
     );
 
-    const provider = new ethers.providers.JsonRpcProvider(chainUrl);
+    const provider = createPublicClient({
+      chain: getNetworkViem(chain as Network),
+      transport: http(chainUrl),
+    });
 
-    const contract = new ethers.Contract(
-      tokenAddress,
-      erc20Abi.default.abi,
-      provider
-    );
+    const contract = getContract({
+      address: tokenAddress as `0x${string}`,
+      abi: erc20Abi.default.abi,
+      client: provider,
+    });
 
-    const result = await contract.decimals();
+    const result = await contract.read.decimals();
 
-    return result;
+    return result as number;
   } catch (error) {
     return `Error to get the decimal for token: ${tokenAddress}, ${error}`;
   }
@@ -281,38 +314,56 @@ export const estimateGas = async (
       client: wallet,
     });
 
-    const decimals = await tokenContract.read.decimals();
+    const decimals =
+      tokenAddress === ethers.constants.AddressZero
+        ? 18
+        : await tokenContract.read.decimals();
 
     const amountInUnits = parseUnits(amount, decimals as number);
 
-    // Encode the parameters
-    const iface = new ethers.utils.Interface([
-      "function transfer(address to, uint256 amount)",
-    ]);
-
-    // Encode the function data
-    const calldata = iface.encodeFunctionData("transfer", [
-      recipientAddress,
-      amountInUnits,
-    ]);
-
     const EOAAddress = await getEOAAddress(privateKey);
 
-    const gasEstimate = await client.estimateContractGas({
-      address: ETHERSPOT_V1_PERSONAL_ACCOUNT_REGISTRY_ADDRESS as `0x${string}`,
-      abi: personalRegistryAbi.default.abi,
-      functionName: "executeAccountTransaction",
-      args: [accountAddress, tokenAddress, "0", calldata],
-      account: EOAAddress as `0x${string}`,
-    });
+    if (tokenAddress === ethers.constants.AddressZero) {
+      const gasEstimate = await client.estimateContractGas({
+        address:
+          ETHERSPOT_V1_PERSONAL_ACCOUNT_REGISTRY_ADDRESS as `0x${string}`,
+        abi: personalRegistryAbi.default.abi,
+        functionName: "executeAccountTransaction",
+        args: [accountAddress, recipientAddress, amountInUnits, "0x"],
+        account: EOAAddress as `0x${string}`,
+      });
 
-    const gasPriceInWei = await client.getGasPrice();
+      const gasPriceInWei = await client.getGasPrice();
 
-    const totalCostInWei = gasEstimate * gasPriceInWei;
+      const totalCostInWei = gasEstimate * gasPriceInWei;
 
-    const totalCostInNativeToken = ethers.utils.formatEther(totalCostInWei);
+      const totalCostInNativeToken = formatEther(totalCostInWei);
 
-    return totalCostInNativeToken;
+      return totalCostInNativeToken;
+    } else {
+      const calldata = encodeFunctionData({
+        abi: erc20Abi.default.abi,
+        functionName: "transfer",
+        args: [recipientAddress, amountInUnits],
+      });
+
+      const gasEstimate = await client.estimateContractGas({
+        address:
+          ETHERSPOT_V1_PERSONAL_ACCOUNT_REGISTRY_ADDRESS as `0x${string}`,
+        abi: personalRegistryAbi.default.abi,
+        functionName: "executeAccountTransaction",
+        args: [accountAddress, tokenAddress, "0", calldata],
+        account: EOAAddress as `0x${string}`,
+      });
+
+      const gasPriceInWei = await client.getGasPrice();
+
+      const totalCostInWei = gasEstimate * gasPriceInWei;
+
+      const totalCostInNativeToken = formatEther(totalCostInWei);
+
+      return totalCostInNativeToken;
+    }
   } catch (error) {
     return `Error estimating gas for transfer: ${error}`;
   }
@@ -370,33 +421,46 @@ export const transferTokens = async (
       client: wallet,
     });
 
-    const decimals = await tokenContract.read.decimals();
+    const decimals =
+      tokenAddress === ethers.constants.AddressZero
+        ? 18
+        : await tokenContract.read.decimals();
 
     const amountInUnits = parseUnits(amount, decimals as number);
 
-    // Encode the parameters
-    const iface = new ethers.utils.Interface([
-      "function transfer(address to, uint256 amount)",
-    ]);
+    if (tokenAddress === ethers.constants.AddressZero) {
+      const tx = await accountContract.write.executeAccountTransaction([
+        accountAddress,
+        recipientAddress,
+        amountInUnits,
+        "0x",
+      ]);
 
-    // Encode the function data
-    const calldata = iface.encodeFunctionData("transfer", [
-      recipientAddress,
-      amountInUnits,
-    ]);
+      const receipt = await client.waitForTransactionReceipt({
+        hash: tx,
+      });
 
-    const tx = await accountContract.write.executeAccountTransaction([
-      accountAddress,
-      tokenAddress,
-      "0",
-      calldata,
-    ]);
+      return receipt.transactionHash;
+    } else {
+      const calldata = encodeFunctionData({
+        abi: [erc20Abi.default.abi],
+        functionName: "transfer",
+        args: [recipientAddress, amountInUnits],
+      });
 
-    const receipt = await client.waitForTransactionReceipt({
-      hash: tx,
-    });
+      const tx = await accountContract.write.executeAccountTransaction([
+        accountAddress,
+        tokenAddress,
+        "0",
+        calldata,
+      ]);
 
-    return receipt.transactionHash;
+      const receipt = await client.waitForTransactionReceipt({
+        hash: tx,
+      });
+
+      return receipt.transactionHash;
+    }
   } catch (error) {
     return `Error transferring tokens: ${error}`;
   }
@@ -406,24 +470,36 @@ export const transferTokens = async (
 export const getNftName = async (
   nftAddress: string,
   chain: string
-): Promise<number | undefined> => {
+): Promise<string | undefined> => {
   const chainUrl = chainMapping[chain as Network] || null;
 
   if (!chainUrl) {
     console.error(`Unsupported chain: ${chain}`);
-    return 0;
+    return "";
   }
 
   try {
     // ERC-721 or ERC-1155 ABI
-    const abi = ["function name() view returns (string)"];
+    const abiERC721 = await import(
+      "./contracts/artifacts-etherspot-v1/ERC721.json",
+      {
+        with: { type: "json" },
+      }
+    );
 
-    const provider = new ethers.providers.JsonRpcProvider(chainUrl);
+    const provider = createPublicClient({
+      chain: getNetworkViem(chain as Network),
+      transport: http(chainUrl),
+    });
 
-    const contract = new ethers.Contract(nftAddress, abi, provider);
+    const contract = getContract({
+      address: nftAddress as `0x${string}`,
+      abi: abiERC721.default,
+      client: provider,
+    });
 
-    const nftName = await contract.name();
-    return nftName;
+    const nftName = await contract.read.name();
+    return nftName as string;
   } catch (error) {
     console.error(`Unexpected error fetching name for ${nftAddress}: ${error}`);
     return undefined;
@@ -458,34 +534,39 @@ export const getNftBalance = async (
       }
     );
 
-    const provider = new ethers.providers.JsonRpcProvider(chainUrl);
+    const provider = createPublicClient({
+      chain: getNetworkViem(chain as Network),
+      transport: http(chainUrl),
+    });
 
-    const contractERC721 = new ethers.Contract(
-      nftAddress,
-      abiERC721.default,
-      provider
-    );
+    const contractERC721 = getContract({
+      address: nftAddress as `0x${string}`,
+      abi: abiERC721.default,
+      client: provider,
+    });
 
-    const contractERC1155 = new ethers.Contract(
-      nftAddress,
-      abiERC1155.default,
-      provider
-    );
+    const contractERC1155 = getContract({
+      address: nftAddress as `0x${string}`,
+      abi: abiERC1155.default,
+      client: provider,
+    });
 
     try {
       // Attempt ERC721 balance
-      const resultERC721 = await contractERC721.balanceOf(accountAddress);
-      return processBigNumber(resultERC721);
+      const resultERC721 = await contractERC721.read.balanceOf([
+        accountAddress,
+      ]);
+      return processBigNumber(resultERC721 as BigNumber);
     } catch (errorERC721) {
       console.warn(`ERC721 balance fetch failed: ${errorERC721}`);
 
       // Fallback to ERC1155
       try {
-        const resultERC1155 = await contractERC1155.balanceOf(
+        const resultERC1155 = await contractERC1155.read.balanceOf([
           accountAddress,
-          nftId
-        );
-        return processBigNumber(resultERC1155);
+          nftId,
+        ]);
+        return processBigNumber(resultERC1155 as BigNumber);
       } catch (errorERC1155) {
         console.error(`ERC1155 balance fetch also failed: ${errorERC1155}`);
         return 0;
@@ -607,6 +688,20 @@ export const transferNft = async (
       }
     );
 
+    const erc721Abi = await import(
+      "./contracts/artifacts-etherspot-v1/ERC721.json",
+      {
+        with: { type: "json" },
+      }
+    );
+
+    const erc1155Abi = await import(
+      "./contracts/artifacts-etherspot-v1/ERC1155.json",
+      {
+        with: { type: "json" },
+      }
+    );
+
     const client = createPublicClient({
       chain: getNetworkViem(chain as Network),
       transport: http(chainUrl),
@@ -624,26 +719,18 @@ export const transferNft = async (
       client: wallet,
     });
 
-    // Encode the parameters
-    const ifaceERC721 = new ethers.utils.Interface([
-      "function safeTransferFrom(address from, address to, uint256 tokenId)",
-    ]);
-
-    const ifaceERC1155 = new ethers.utils.Interface([
-      "function safeTransferFrom(address from, address to, uint256 id, uint256 amount, bytes data)",
-    ]);
-
     // Encode the function data
-    const calldataERC721 = ifaceERC721.encodeFunctionData("safeTransferFrom", [
-      accountAddress,
-      recipientAddress,
-      nftId,
-    ]);
+    const calldataERC721 = encodeFunctionData({
+      abi: [erc721Abi.default],
+      functionName: "safeTransferFrom",
+      args: [accountAddress, recipientAddress, nftId],
+    });
 
-    const calldataERC1155 = ifaceERC1155.encodeFunctionData(
-      "safeTransferFrom",
-      [accountAddress, recipientAddress, nftId, "1", "0x"]
-    );
+    const calldataERC1155 = encodeFunctionData({
+      abi: [erc1155Abi.default],
+      functionName: "safeTransferFrom",
+      args: [accountAddress, recipientAddress, nftId, "1", "0x"],
+    });
 
     // Try ERC721 transfer
     try {

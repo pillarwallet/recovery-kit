@@ -1,5 +1,5 @@
-import { ethers } from "ethers";
 import { useState } from "react";
+import { formatUnits } from "viem";
 
 // hooks
 import { useRecoveryKit } from "../hooks/useRecoveryKit";
@@ -81,10 +81,7 @@ const AssetsList = () => {
 
       try {
         const decimal = await window.electron.getDecimal(tokenAddress, chain);
-        const readableBalance = ethers.utils.formatUnits(
-          bigIntBalance,
-          decimal
-        );
+        const readableBalance = formatUnits(bigIntBalance, Number(decimal));
 
         return Number(readableBalance);
       } catch (decimalError) {
@@ -242,7 +239,7 @@ const AssetsList = () => {
           {Object.keys(groupedTokens).map((chainName) => (
             <div key={chainName} className="mb-6">
               <h2 className="text-xl font-semibold mb-4 capitalize">
-                {chainName}
+                {chainName === "xdai" ? "gnosis" : chainName}
               </h2>
               {groupedTokens[chainName].map((token) => (
                 <div
@@ -272,7 +269,10 @@ const AssetsList = () => {
                   </div>
 
                   <p className="text-sm text-left">
-                    on <span className="capitalize">{token.chain}</span>
+                    on{" "}
+                    <span className="capitalize">
+                      {token.chain === "xdai" ? "gnosis" : token.chain}
+                    </span>
                   </p>
                 </div>
               ))}
@@ -356,7 +356,7 @@ const AssetsList = () => {
               <option value="optimism">Optimism</option>
               <option value="arbitrum">Arbitrum</option>
               <option value="binance">Binance</option>
-              <option value="xdai">Xdai</option>
+              <option value="xdai">Gnosis</option>
             </select>
           </label>
           <div className="flex items-center">

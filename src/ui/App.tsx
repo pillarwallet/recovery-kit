@@ -17,7 +17,7 @@ import TransferToken from "./components/TransferToken";
 import { useRecoveryKit } from "./hooks/useRecoveryKit";
 
 const App = () => {
-  const { step, setStep } = useRecoveryKit();
+  const { step, setStep, accountAddress } = useRecoveryKit();
 
   const getAppScreen = (screen: number) => {
     switch (screen) {
@@ -44,6 +44,12 @@ const App = () => {
     <div className="flex flex-col items-start gap-4">
       <h1 className="text-4xl font-medium">Recovery Kit</h1>
       <ChangeChainMapping />
+      {accountAddress && (
+        <p className="truncate w-full text-md text-left mb-4">
+          Your wallet address:{" "}
+          <span className="font-bold">{accountAddress}</span>
+        </p>
+      )}
       <p className="text-md text-left mb-4">
         Transfer your assets from your{" "}
         <span className="font-bold">Etherspot V1</span> accounts to another

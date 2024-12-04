@@ -1,6 +1,6 @@
-import { ethers } from "ethers";
 import { useCallback, useEffect, useState } from "react";
 import { FaRedo } from "react-icons/fa";
+import { formatUnits } from "viem";
 
 // hooks
 import { useRecoveryKit } from "../hooks/useRecoveryKit";
@@ -58,7 +58,7 @@ const AssetsPerFactory = ({ contractType }: AssetsPerFactoryType) => {
 
       const bigIntBalance = balance[0];
       const decimal = await window.electron.getDecimal(tokenAddress, chain);
-      const readableBalance = ethers.utils.formatUnits(bigIntBalance, decimal);
+      const readableBalance = formatUnits(bigIntBalance, Number(decimal) || 18);
 
       return Number(readableBalance);
     } catch (error) {
@@ -152,7 +152,7 @@ const AssetsPerFactory = ({ contractType }: AssetsPerFactoryType) => {
           const tokenBalances = balances
             .map((balance: bigint, index: number) => {
               const token = tokenList[index];
-              const readableBalance = ethers.utils.formatUnits(
+              const readableBalance = formatUnits(
                 balance,
                 Number(token.decimals)
               );

@@ -56,7 +56,7 @@ const ChangeChainMapping = () => {
           !isOpen && "px-6"
         } py-2 rounded-xl text-white`}
       >
-        <p className="text-md text-left">Edit RPC provider</p>
+        <p className="text-md text-left">Edit RPC providers</p>
         {isOpen ? (
           <MdKeyboardArrowUp size={20} />
         ) : (
@@ -70,7 +70,7 @@ const ChangeChainMapping = () => {
             return (
               <div key={network} className="flex gap-2 mb-2">
                 <p className="flex text-md text-left capitalize w-[200px]">
-                  {chain}
+                  {chain === "xdai" ? "gnosis" : chain}
                 </p>
                 <input
                   type="text"
