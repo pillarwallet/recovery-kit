@@ -443,7 +443,7 @@ export const transferTokens = async (
       return receipt.transactionHash;
     } else {
       const calldata = encodeFunctionData({
-        abi: [erc20Abi.default.abi],
+        abi: erc20Abi.default.abi,
         functionName: "transfer",
         args: [recipientAddress, amountInUnits],
       });
