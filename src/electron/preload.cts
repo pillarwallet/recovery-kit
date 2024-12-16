@@ -5,6 +5,8 @@ electron.contextBridge.exposeInMainWorld("electron", {
     ipcSend("updateChainMapping", updatedChainMapping),
   getEOAAddress: (privateKey: string) =>
     ipcInvoke("getEOAAddress", [privateKey]),
+  getAccountAddress: (privateKey: string) =>
+    ipcInvoke("getAccountAddress", [privateKey]),
   submitMnemonic: (mnemonicWords: string[]) =>
     ipcInvoke("submitMnemonic", [mnemonicWords]),
   getPrivateKey: (mnemonicWords: string[]) =>

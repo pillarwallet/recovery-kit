@@ -6,6 +6,7 @@ import { getPreloadPath } from "./pathResolver.js";
 import {
   estimateGas,
   estimateGasNftTransfer,
+  getAccountAddress,
   getBalances,
   getDecimal,
   getEOAAddress,
@@ -58,6 +59,16 @@ app.on("ready", () => {
     try {
       const EOAAddress = await getEOAAddress(privateKey);
       return EOAAddress;
+    } catch (error) {
+      return `Error, ${error}`;
+    }
+  });
+
+  // Handle getting the account address
+  ipcMain.handle("getAccountAddress", async (_, privateKey) => {
+    try {
+      const accountAddress = await getAccountAddress(privateKey);
+      return accountAddress;
     } catch (error) {
       return `Error, ${error}`;
     }

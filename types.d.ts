@@ -28,6 +28,7 @@ type FrameWindowAction = "CLOSE" | "MAXIMIZE" | "MINIMIZE";
 type EventPayloadMapping = {
   updateChainMapping: any;
   getEOAAddress: string;
+  getAccountAddress: string;
   submitMnemonic: string;
   getBalances: BigNumber[] | bigint[];
   getNftName: string | undefined;
@@ -47,6 +48,7 @@ interface Window {
   electron: {
     updateChainMapping: (updatedChainMapping: any) => void;
     getEOAAddress: (privateKey: string) => Promise<string>;
+    getAccountAddress: (privateKey: string) => Promise<string>;
     submitMnemonic: (mnemonicWords: string[]) => Promise<string>;
     getPrivateKey: (mnemonicWords: string[]) => Promise<string>;
     getBalances: (
