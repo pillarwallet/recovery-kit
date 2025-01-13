@@ -25,14 +25,10 @@ jobs:
           sudo dpkg --add-architecture i386
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            wine64 wine32 \
+            wine-stable \
             gcc-multilib g++-multilib \
             xvfb \
             winbind
-          # Install Wine Mono
-          WINE_MONO_VERSION=9.4.0
-          wget https://dl.winehq.org/wine/wine-mono/${WINE_MONO_VERSION}/wine-mono-${WINE_MONO_VERSION}-x86.msi
-          wine msiexec /i wine-mono-${WINE_MONO_VERSION}-x86.msi /quiet /qn
 
       - name: Start virtual display
         run: |
