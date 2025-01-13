@@ -26,19 +26,36 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             wine-stable \
+            wine32:i386 \
             gcc-multilib g++-multilib \
             xvfb \
-            winbind
+            winbind \
+            x11-xserver-utils
 
-      - name: Start virtual display
+      - name: Configure Wine
         run: |
-          Xvfb :99 & export DISPLAY=:99
-          echo "Virtual display started."
+          # Initialize wine
+          wine64 wineboot --init
+          # Wait for wineserver
+          wineserver -w
+          # Configure display
+          export DISPLAY=:99
+          Xvfb :99 -screen 0 1024x768x16 &
+          sleep 3
 
       - name: Install dependencies
         run: |
           npm ci
           npm install -g electron-builder
+        env:
+          DISPLAY: :99
+
+      - name: Build for Windows
+        run: npm run dist:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISPLAY: :99
+          WINEDEBUG: -all
 
       - name: Build for Windows
         run: npm run dist:win
