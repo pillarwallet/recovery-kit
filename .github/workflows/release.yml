@@ -35,7 +35,7 @@ jobs:
       - name: Configure Wine
         run: |
           # Initialize wine
-          wine64 wineboot --init
+          wine32 wineboot --init
           # Wait for wineserver
           wineserver -w
           # Configure display
