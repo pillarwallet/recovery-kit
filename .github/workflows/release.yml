@@ -30,8 +30,9 @@ jobs:
             xvfb \
             winbind
           # Install Wine Mono
-          wget https://dl.winehq.org/wine/wine-mono/7.5.0/wine-mono-7.5.0-x86.msi
-          wine msiexec /i wine-mono-7.5.0-x86.msi /quiet /qn
+          WINE_MONO_VERSION=9.4.0
+          wget https://dl.winehq.org/wine/wine-mono/${WINE_MONO_VERSION}/wine-mono-${WINE_MONO_VERSION}-x86.msi
+          wine msiexec /i wine-mono-${WINE_MONO_VERSION}-x86.msi /quiet /qn
 
       - name: Start virtual display
         run: |
