@@ -19,7 +19,7 @@ const AssetsList = () => {
     const storedAssets = localStorage.getItem("addedAssets");
     return storedAssets
       ? JSON.parse(storedAssets).filter(
-          (token: AddedAssets) => token.balance > 0
+          (token: AddedAssets) => Number(token.balance) > 0
         )
       : [];
   });
@@ -51,7 +51,7 @@ const AssetsList = () => {
     }
 
     const updatedAssets = [...addedAssets, asset].filter(
-      (token) => token.balance > 0
+      (token) => Number(token.balance) > 0
     );
     setAddedAssets(updatedAssets);
     localStorage.setItem("addedAssets", JSON.stringify(updatedAssets));
@@ -69,7 +69,7 @@ const AssetsList = () => {
   const getTokenBalance = async (
     tokenAddress: string,
     chain: string
-  ): Promise<number> => {
+  ): Promise<string> => {
     try {
       const balance = await window.electron.getBalances(
         accountAddress || "",
@@ -83,7 +83,7 @@ const AssetsList = () => {
         const decimal = await window.electron.getDecimal(tokenAddress, chain);
         const readableBalance = formatUnits(bigIntBalance, Number(decimal));
 
-        return Number(readableBalance);
+        return readableBalance;
       } catch (decimalError) {
         console.error("Error fetching decimals:", decimalError);
         setError(
@@ -92,7 +92,7 @@ const AssetsList = () => {
         setTimeout(() => {
           setError(null);
         }, 5000);
-        return 0;
+        return "0";
       }
     } catch (error) {
       console.error("Error fetching balance:", error);
@@ -102,7 +102,7 @@ const AssetsList = () => {
       setTimeout(() => {
         setError(null);
       }, 5000);
-      return 0;
+      return "0";
     }
   };
 
@@ -139,7 +139,7 @@ const AssetsList = () => {
         newAsset.chain
       );
 
-      if (newAssetBalance > 0) {
+      if (Number(newAssetBalance) > 0) {
         addAsset({
           chain: newAsset.chain,
           tokenAddress: newAsset.tokenAddress,
@@ -175,7 +175,7 @@ const AssetsList = () => {
         addAsset({
           chain: newAsset.chain,
           tokenAddress: newAsset.tokenAddress,
-          balance: newAssetBalance,
+          balance: newAssetBalance.toString(),
           assetType: "nft",
           tokenId: newAsset.tokenId,
         });

@@ -30,10 +30,10 @@ type EventPayloadMapping = {
   getEOAAddress: string;
   getAccountAddress: string;
   submitMnemonic: string;
-  getBalances: BigNumber[] | bigint[];
+  getBalances: bigint[];
   getNftName: string | undefined;
   getNftBalance: number;
-  getNativeBalance: string | number;
+  getNativeBalance: string;
   getDecimal: string | number;
   estimateGas: string;
   estimateGasNftTransfer: string;
@@ -55,7 +55,7 @@ interface Window {
       accountAddress: string,
       tokenList: string[],
       chain: string
-    ) => Promise<BigNumber[] | bigint[]>;
+    ) => Promise<bigint[]>;
     getNftName: (
       nftAddress: string,
       chain: string
@@ -69,7 +69,7 @@ interface Window {
     getNativeBalance: (
       accountAddress: string,
       chain: string
-    ) => Promise<string | number>;
+    ) => Promise<string>;
     getDecimal: (
       tokenAddress: string,
       chain: string
@@ -146,5 +146,5 @@ type AddedAssets = {
   tokenId?: string;
   chain: string;
   tokenAddress: string;
-  balance: number;
+  balance: string;
 };

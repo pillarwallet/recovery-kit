@@ -29,7 +29,7 @@ export const allNativeTokens: Record<
   { name: string; symbol: string }
 > = {
   ethereum: { name: "Ether", symbol: "ETH" },
-  polygon: { name: "MATIC", symbol: "MATIC" },
+  polygon: { name: "POL", symbol: "POL" },
   optimism: { name: "Ether", symbol: "ETH" },
   arbitrum: { name: "Ether", symbol: "ETH" },
   xdai: { name: "xDai", symbol: "XDAI" },
