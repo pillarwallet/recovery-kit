@@ -15,6 +15,8 @@ interface RecoveryKitContextType {
   setSelectedAsset: React.Dispatch<
     React.SetStateAction<BalanceInfo | AddedAssets | undefined>
   >;
+  EOAWalletAddress: string | null;
+  setEOAWalletAddress: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
 export const RecoveryKitContext = createContext<
@@ -30,6 +32,7 @@ const RecoveryKitProvider = ({ children }: { children: ReactNode }) => {
   const [selectedAsset, setSelectedAsset] = useState<
     BalanceInfo | AddedAssets | undefined
   >();
+  const [EOAWalletAddress, setEOAWalletAddress] = useState<string | null>(null);
 
   return (
     <RecoveryKitContext.Provider
@@ -46,6 +49,8 @@ const RecoveryKitProvider = ({ children }: { children: ReactNode }) => {
         setContract,
         selectedAsset,
         setSelectedAsset,
+        EOAWalletAddress,
+        setEOAWalletAddress,
       }}
     >
       {children}

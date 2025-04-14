@@ -9,9 +9,9 @@ export const CHAIN = {
 
 export const NATIVE_TOKENS: Record<ChainType, string> = {
   ethereum: "ETH",
-  polygon: "MATIC",
+  polygon: "POL",
   binance: "BNB",
   xdai: "XDAI",
-  optimism: "OP",
-  arbitrum: "ARB",
+  optimism: "ETH",
+  arbitrum: "ETH",
 };
