@@ -9,8 +9,13 @@ import LoadingSpinner from "./LoadingSpinner";
 const MnemonicInput = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const { setAccountAddress, setStep, seedPhrase, setSeedPhrase } =
-    useRecoveryKit();
+  const {
+    setAccountAddress,
+    setStep,
+    seedPhrase,
+    setSeedPhrase,
+    setEOAWalletAddress,
+  } = useRecoveryKit();
   const [activeTab, setActiveTab] = useState<"phrase" | "pk">("phrase");
   const [privateKey, setPrivateKey] = useState<string>("");
   const inputContainerRef = useRef<HTMLDivElement>(null);
@@ -43,6 +48,7 @@ const MnemonicInput = () => {
 
       if (!accountAddressRes || accountAddressRes.includes("Error")) {
         setAccountAddress(null);
+        setEOAWalletAddress(null);
         setError(
           `Oops, something went wrong. Please make sure your ${
             activeTab === "phrase" ? "12-word seed phrase" : "private key"
@@ -54,6 +60,11 @@ const MnemonicInput = () => {
 
       if (accountAddressRes?.includes("0x")) {
         setAccountAddress(accountAddressRes);
+
+        const privateKey = await window.electron.getPrivateKey(seedPhrase);
+        const EOAAddress = await window.electron.getEOAAddress(privateKey);
+        setEOAWalletAddress(EOAAddress);
+
         setStep(2);
       }
       // eslint-disable-next-line @typescript-eslint/no-unused-vars

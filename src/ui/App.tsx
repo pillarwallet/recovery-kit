@@ -1,6 +1,7 @@
 // icons
 import { FaRedo } from "react-icons/fa";
 import { IoMdReturnLeft } from "react-icons/io";
+import { IoWarningOutline } from "react-icons/io5";
 
 // css
 import "./App.css";
@@ -17,7 +18,7 @@ import TransferToken from "./components/TransferToken";
 import { useRecoveryKit } from "./hooks/useRecoveryKit";
 
 const App = () => {
-  const { step, setStep, accountAddress } = useRecoveryKit();
+  const { step, setStep, accountAddress, EOAWalletAddress } = useRecoveryKit();
 
   const getAppScreen = (screen: number) => {
     switch (screen) {
@@ -44,16 +45,36 @@ const App = () => {
     <div className="flex flex-col items-start gap-4">
       <h1 className="text-4xl font-medium">Recovery Kit</h1>
       <ChangeChainMapping />
-      {accountAddress && (
-        <p className="truncate w-full text-md text-left mb-4">
-          Your wallet address:{" "}
-          <span className="font-bold">{accountAddress}</span>
-        </p>
+
+      {step > 1 && (
+        <>
+          {accountAddress && (
+            <p className="truncate w-full text-md text-left">
+              Your <span className="font-bold">Wallet </span>address:{" "}
+              <span className="font-bold">{accountAddress}</span>
+            </p>
+          )}
+          {EOAWalletAddress && (
+            <p className="truncate w-full text-md text-left">
+              Your <span className="font-bold">EOA Wallet </span>address:{" "}
+              <span className="font-bold">{EOAWalletAddress}</span>
+            </p>
+          )}
+
+          <div className="flex gap-2 items-center">
+            <IoWarningOutline />
+            <p className="w-full text-md text-left">
+              As ES V2 servers are permanently unavailable, all gas fees must be
+              paid via your EOA Wallet. Please ensure it has sufficient funds.
+            </p>
+          </div>
+        </>
       )}
+
       <p className="text-md text-left mb-4">
         Transfer your assets from your{" "}
-        <span className="font-bold">Etherspot V1</span> accounts to another
-        account.
+        <span className="font-bold">Etherspot V1</span> accounts (this is your
+        Pillar V2 wallet) to another account.
       </p>
       <div className="flex w-full justify-between">
         {step !== 1 && (
