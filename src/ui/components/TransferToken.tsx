@@ -9,12 +9,12 @@ import { useRecoveryKit } from "../hooks/useRecoveryKit";
 import { getBlockScan, getNativeTokenSymbol } from "../utils/index";
 
 const TransferToken = () => {
-  const { selectedAsset, accountAddress, seedPhrase } = useRecoveryKit();
+  const { selectedAsset, accountAddress, seedPhrase, EOAWalletAddress } =
+    useRecoveryKit();
   const [transferAddress, setTransferAddress] = useState<string>("");
   const [gasEstimation, setGasEstimation] = useState<string>("");
   const [nativeTokenBalance, setNativeTokenBalance] = useState<string>();
   const [transferStatus, setTransferStatus] = useState<string | null>(null);
-  const [EOAWalletAddress, setEOAWalletAddress] = useState<string>("");
 
   const estimateGas = async (
     accountAddress: string,
@@ -76,16 +76,11 @@ const TransferToken = () => {
       setGasEstimation(estimatedGas);
     }
 
-    const privateKey = await window.electron.getPrivateKey(seedPhrase);
-
-    const EOAAddress = await window.electron.getEOAAddress(privateKey);
-
     const nativeToken = await window.electron.getNativeBalance(
-      EOAAddress as string,
+      EOAWalletAddress as string,
       selectedAsset?.chain as string
     );
 
-    setEOAWalletAddress(EOAAddress as string);
     setNativeTokenBalance(nativeToken);
   };
 
