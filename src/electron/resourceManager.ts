@@ -163,7 +163,7 @@ export const getBalances = async (
   accountAddress: string,
   tokenList: string[],
   chain: string
-): Promise<BigNumber[]> => {
+): Promise<bigint[]> => {
   const chainUrl = chainMapping[chain as Network] || null;
 
   try {
@@ -196,7 +196,7 @@ export const getBalances = async (
       validTokens,
     ]);
 
-    return result as BigNumber[];
+    return result as bigint[];
   } catch (error) {
     console.error(`Error to get the balances for chain: ${chain}, ${error}`);
     return [];
@@ -206,7 +206,7 @@ export const getBalances = async (
 export const getNativeBalance = async (
   accountAddress: string,
   chain: string
-): Promise<string | number> => {
+): Promise<string> => {
   const chainUrl = chainMapping[chain as Network] || null;
 
   try {
@@ -225,7 +225,7 @@ export const getNativeBalance = async (
 
     const balanceInEther = formatEther(nativeTokenBalance);
 
-    return Number(balanceInEther);
+    return balanceInEther;
   } catch (error) {
     return `Error to get the native balance for chain: ${chain}, ${error}`;
   }

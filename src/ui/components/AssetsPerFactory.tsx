@@ -40,7 +40,7 @@ const AssetsPerFactory = ({ contractType }: AssetsPerFactoryType) => {
     const storedAssets = localStorage.getItem("addedAssets");
     return storedAssets
       ? JSON.parse(storedAssets).filter(
-          (token: AddedAssets) => token.balance > 0
+          (token: AddedAssets) => Number(token.balance) > 0
         )
       : [];
   });
@@ -48,7 +48,7 @@ const AssetsPerFactory = ({ contractType }: AssetsPerFactoryType) => {
   const getTokenBalance = async (
     tokenAddress: string,
     chain: string
-  ): Promise<number> => {
+  ): Promise<string> => {
     try {
       const balance = await window.electron.getBalances(
         accountAddress || "",
@@ -60,10 +60,10 @@ const AssetsPerFactory = ({ contractType }: AssetsPerFactoryType) => {
       const decimal = await window.electron.getDecimal(tokenAddress, chain);
       const readableBalance = formatUnits(bigIntBalance, Number(decimal) || 18);
 
-      return Number(readableBalance);
+      return readableBalance;
     } catch (error) {
       console.error("Error fetching balance:", error);
-      return 0;
+      return "0";
     }
   };
 
@@ -90,7 +90,7 @@ const AssetsPerFactory = ({ contractType }: AssetsPerFactoryType) => {
   const refetchBalances = async () => {
     const updatedAssets = await Promise.all(
       addedAssets.map(async (asset) => {
-        let updatedBalance = 0;
+        let updatedBalance: string | number | undefined = "0";
 
         if (asset.assetType === "token") {
           updatedBalance = await getTokenBalance(
@@ -107,12 +107,14 @@ const AssetsPerFactory = ({ contractType }: AssetsPerFactoryType) => {
 
         return {
           ...asset,
-          balance: updatedBalance,
+          balance: updatedBalance?.toString(),
         };
       })
     );
 
-    const filteredAssets = updatedAssets.filter((asset) => asset.balance > 0);
+    const filteredAssets = updatedAssets.filter(
+      (asset) => Number(asset.balance) > 0
+    );
     setAddedAssets(filteredAssets);
     localStorage.setItem("addedAssets", JSON.stringify(filteredAssets));
   };
@@ -143,7 +145,7 @@ const AssetsPerFactory = ({ contractType }: AssetsPerFactoryType) => {
             chain,
             address: "0x0000000000000000000000000000000000000000",
             decimals: 18,
-            balance: nativeBalance.toString(),
+            balance: nativeBalance,
             name: allNativeTokens[chain as Network].name,
             symbol: allNativeTokens[chain as Network].symbol,
             logoURI: "",

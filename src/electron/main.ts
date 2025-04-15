@@ -1,6 +1,5 @@
 import dotenv from "dotenv";
 import { app, BrowserWindow, ipcMain } from "electron";
-import { BigNumber } from "ethers";
 import path from "path";
 import { getPreloadPath } from "./pathResolver.js";
 import {
@@ -102,7 +101,7 @@ app.on("ready", () => {
         const balances = await getBalances(accountAddress, tokenList, chain);
 
         // Convert BigInt values to strings
-        const readableBalances = balances.map((balance: BigNumber | bigint) =>
+        const readableBalances = balances.map((balance: bigint) =>
           balance.toString()
         );
 

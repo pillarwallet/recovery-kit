@@ -13,7 +13,7 @@ const TransferToken = () => {
     useRecoveryKit();
   const [transferAddress, setTransferAddress] = useState<string>("");
   const [gasEstimation, setGasEstimation] = useState<string>("");
-  const [nativeTokenBalance, setNativeTokenBalance] = useState<number>();
+  const [nativeTokenBalance, setNativeTokenBalance] = useState<string>();
   const [transferStatus, setTransferStatus] = useState<string | null>(null);
 
   const estimateGas = async (
@@ -69,7 +69,7 @@ const TransferToken = () => {
         accountAddress as string,
         tokenAddress as string,
         transferAddress,
-        amount?.toString() as string,
+        amount as string,
         selectedAsset?.chain as string
       );
 
@@ -81,7 +81,7 @@ const TransferToken = () => {
       selectedAsset?.chain as string
     );
 
-    setNativeTokenBalance(nativeToken as number);
+    setNativeTokenBalance(nativeToken);
   };
 
   const handleTransfer = async () => {
@@ -120,7 +120,7 @@ const TransferToken = () => {
           accountAddress as string,
           tokenAddress as string,
           transferAddress,
-          amount?.toString() as string,
+          amount as string,
           selectedAsset?.chain as string,
           privateKey
         );
@@ -132,7 +132,8 @@ const TransferToken = () => {
     }
   };
 
-  const isNotEnoughGasToken = Number(gasEstimation) > (nativeTokenBalance || 0);
+  const isNotEnoughGasToken =
+    Number(gasEstimation) > (Number(nativeTokenBalance) || 0);
 
   return (
     <div className="flex flex-col gap-4 w-full">
