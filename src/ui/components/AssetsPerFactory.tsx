@@ -244,7 +244,9 @@ const AssetsPerFactory = ({ contractType }: AssetsPerFactoryType) => {
           : () => null
       }
     >
-      <p className="text-lg text-left capitalize">{contractType}</p>
+      <p className="text-lg text-left capitalize">
+        {contractType === "etherspot-v1" ? "Etherspot V1" : contractType}
+      </p>
       {isLoading ? (
         <div className="flex gap-4">
           <LoadingSpinner size={20} />

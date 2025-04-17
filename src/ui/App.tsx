@@ -64,8 +64,9 @@ const App = () => {
           <div className="flex gap-2 items-center">
             <IoWarningOutline />
             <p className="w-full text-md text-left">
-              As ES V2 servers are permanently unavailable, all gas fees must be
-              paid via your EOA Wallet. Please ensure it has sufficient funds.
+              As Etherspot V1 servers are permanently unavailable, all gas fees
+              must be paid via your EOA Wallet. Please ensure it has sufficient
+              funds.
             </p>
           </div>
         </>
