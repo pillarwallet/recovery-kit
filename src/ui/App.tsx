@@ -27,7 +27,10 @@ const App = () => {
       case 1:
         return <MnemonicInput />;
       case 2:
-        return <AssetsPerFactory contractType="etherspot-v1" />;
+        return <>
+          <AssetsPerFactory contractType="etherspot-v1" />
+          <AssetsPerFactory contractType="archanova" />
+        </>
       case 3:
         return <AssetsList />;
       case 4:

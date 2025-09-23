@@ -9,8 +9,8 @@ interface RecoveryKitContextType {
   setSeedPhrase: React.Dispatch<React.SetStateAction<string[]>>;
   step: number;
   setStep: React.Dispatch<React.SetStateAction<number>>;
-  balances: BalancesByChain;
-  setBalances: React.Dispatch<React.SetStateAction<BalancesByChain>>;
+  balances: Record<ContractsType, BalancesByChain>;
+  setBalances: React.Dispatch<React.SetStateAction<Record<ContractsType, BalancesByChain>>>;
   contract: ContractsType | undefined;
   setContract: React.Dispatch<React.SetStateAction<ContractsType | undefined>>;
   selectedAsset: BalanceInfo | AddedAssets | undefined;
@@ -29,7 +29,10 @@ const RecoveryKitProvider = ({ children }: { children: ReactNode }) => {
   const [accountAddress, setAccountAddress] = useState<string | null>(null);
   const [archanovaAddress, setArchanovaAddress] = useState<string | null>(null);
   const [seedPhrase, setSeedPhrase] = useState<string[]>(Array(12).fill(""));
-  const [balances, setBalances] = useState<BalancesByChain>({});
+  const [balances, setBalances] = useState<Record<ContractsType, BalancesByChain>>({
+    "etherspot-v1": {},
+    "archanova": {},
+  });
   const [step, setStep] = useState<number>(1);
   const [contract, setContract] = useState<ContractsType>();
   const [selectedAsset, setSelectedAsset] = useState<

@@ -5,7 +5,7 @@ import { formatUnits } from "viem";
 import { useRecoveryKit } from "../hooks/useRecoveryKit";
 
 const AssetsList = () => {
-  const { balances, accountAddress, setStep, setSelectedAsset } =
+  const { balances, accountAddress, setStep, setSelectedAsset, contract } =
     useRecoveryKit();
   const [isAddingAsset, setIsAddingAsset] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +25,7 @@ const AssetsList = () => {
   });
   const [activeTab, setActiveTab] = useState<"tokens" | "nfts">("tokens");
 
-  const allBalances: BalanceInfo[] = Object.entries(balances).flatMap(
+  const allBalances: BalanceInfo[] = Object.entries(balances[contract || "etherspot-v1"] || {}).flatMap(
     ([chain, balances]) =>
       balances.map((balanceInfo) => ({
         ...balanceInfo,
