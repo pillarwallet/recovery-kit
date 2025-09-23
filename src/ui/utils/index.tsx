@@ -59,3 +59,17 @@ export const getAddressForContractType = (
       return addresses.accountAddress;
   }
 };
+
+/**
+ * Get display name for contract type
+ */
+export const getContractDisplayName = (contractType: ContractsType): string => {
+  switch (contractType) {
+    case "etherspot-v1":
+      return "Etherspot V1";
+    case "archanova":
+      return "Archanova";
+    default:
+      return "Unknown Contract";
+  }
+};

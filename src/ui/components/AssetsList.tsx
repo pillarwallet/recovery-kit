@@ -4,9 +4,26 @@ import { formatUnits } from "viem";
 // hooks
 import { useRecoveryKit } from "../hooks/useRecoveryKit";
 
+// utils
+import { getAddressForContractType, getContractDisplayName } from "../utils";
+
 const AssetsList = () => {
-  const { balances, accountAddress, setStep, setSelectedAsset, contract } =
-    useRecoveryKit();
+  const { 
+    balances, 
+    accountAddress, 
+    setStep, 
+    setSelectedAsset, 
+    contract,
+    archanovaAddress,
+    EOAWalletAddress 
+  } = useRecoveryKit();
+  
+  // Get the appropriate address based on contract type
+  const selectedAddress = getAddressForContractType(contract || "etherspot-v1", {
+    accountAddress,
+    archanovaAddress,
+    EOAWalletAddress,
+  });
   const [isAddingAsset, setIsAddingAsset] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -72,7 +89,7 @@ const AssetsList = () => {
   ): Promise<string> => {
     try {
       const balance = await window.electron.getBalances(
-        accountAddress || "",
+        selectedAddress || "",
         [tokenAddress],
         chain
       );
@@ -113,7 +130,7 @@ const AssetsList = () => {
   ): Promise<number> => {
     try {
       const balance = await window.electron.getNftBalance(
-        accountAddress || "",
+        selectedAddress || "",
         nftAddress,
         nftId,
         chain
@@ -208,7 +225,9 @@ const AssetsList = () => {
 
   return (
     <div className="flex flex-col gap-4 w-full">
-      <p className="text-lg text-left">Etherspot V1</p>
+      <p className="text-lg text-left">
+        {getContractDisplayName(contract || "etherspot-v1")}
+      </p>
       <p className="text-sm text-left">Select the asset you want to move</p>
 
       <div className="flex mb-4 w-full">

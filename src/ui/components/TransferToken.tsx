@@ -6,11 +6,24 @@ import { isAddress } from "viem";
 import { useRecoveryKit } from "../hooks/useRecoveryKit";
 
 // utils
-import { getBlockScan, getNativeTokenSymbol } from "../utils/index";
+import { getBlockScan, getNativeTokenSymbol, getAddressForContractType } from "../utils/index";
 
 const TransferToken = () => {
-  const { selectedAsset, accountAddress, seedPhrase, EOAWalletAddress } =
-    useRecoveryKit();
+  const { 
+    selectedAsset, 
+    accountAddress, 
+    seedPhrase, 
+    EOAWalletAddress,
+    contract,
+    archanovaAddress 
+  } = useRecoveryKit();
+  
+  // Get the appropriate address based on contract type
+  const selectedAddress = getAddressForContractType(contract || "etherspot-v1", {
+    accountAddress,
+    archanovaAddress,
+    EOAWalletAddress,
+  });
   const [transferAddress, setTransferAddress] = useState<string>("");
   const [gasEstimation, setGasEstimation] = useState<string>("");
   const [nativeTokenBalance, setNativeTokenBalance] = useState<string>();
@@ -56,7 +69,7 @@ const TransferToken = () => {
     ) {
       const estimatedGasNftTransfer =
         await window.electron.estimateGasNftTransfer(
-          accountAddress as string,
+          selectedAddress as string,
           transferAddress,
           tokenAddress as string,
           selectedAsset.tokenId as string,
@@ -66,7 +79,7 @@ const TransferToken = () => {
       setGasEstimation(estimatedGasNftTransfer);
     } else {
       const estimatedGas = await estimateGas(
-        accountAddress as string,
+        selectedAddress as string,
         tokenAddress as string,
         transferAddress,
         amount as string,
@@ -106,7 +119,7 @@ const TransferToken = () => {
         selectedAsset.assetType === "nft"
       ) {
         const result = await window.electron.transferNft(
-          accountAddress as string,
+          selectedAddress as string,
           transferAddress,
           tokenAddress as string,
           selectedAsset.tokenId as string,
@@ -117,7 +130,7 @@ const TransferToken = () => {
         setTransferStatus(result);
       } else {
         const result = await window.electron.transferTokens(
-          accountAddress as string,
+          selectedAddress as string,
           tokenAddress as string,
           transferAddress,
           amount as string,
