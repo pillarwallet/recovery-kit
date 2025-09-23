@@ -3,6 +3,8 @@ import React, { ReactNode, createContext, useState } from "react";
 interface RecoveryKitContextType {
   accountAddress: string | null;
   setAccountAddress: React.Dispatch<React.SetStateAction<string | null>>;
+  archanovaAddress: string | null;
+  setArchanovaAddress: React.Dispatch<React.SetStateAction<string | null>>;
   seedPhrase: string[];
   setSeedPhrase: React.Dispatch<React.SetStateAction<string[]>>;
   step: number;
@@ -25,6 +27,7 @@ export const RecoveryKitContext = createContext<
 
 const RecoveryKitProvider = ({ children }: { children: ReactNode }) => {
   const [accountAddress, setAccountAddress] = useState<string | null>(null);
+  const [archanovaAddress, setArchanovaAddress] = useState<string | null>(null);
   const [seedPhrase, setSeedPhrase] = useState<string[]>(Array(12).fill(""));
   const [balances, setBalances] = useState<BalancesByChain>({});
   const [step, setStep] = useState<number>(1);
@@ -39,6 +42,8 @@ const RecoveryKitProvider = ({ children }: { children: ReactNode }) => {
       value={{
         accountAddress,
         setAccountAddress,
+        archanovaAddress,
+        setArchanovaAddress,
         seedPhrase,
         setSeedPhrase,
         step,

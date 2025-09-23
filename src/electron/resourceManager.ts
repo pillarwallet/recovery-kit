@@ -13,6 +13,9 @@ import {
 import { privateKeyToAccount } from "viem/accounts";
 import { arbitrum, bsc, gnosis, mainnet, optimism, polygon } from "viem/chains";
 import { chainMapping } from "./main.js";
+import { promises as fs } from "fs";
+import * as path from "path";
+import { app } from "electron";
 
 // utils
 import {
@@ -97,6 +100,38 @@ export const getAccountAddress = async (privateKey: string) => {
     return accountAddress as string;
   } catch (error) {
     return `Error to get the account address:, ${error}`;
+  }
+};
+
+export const getArchanovaAddress = async (
+  privateKey: string
+): Promise<string> => {
+  try {
+    // Get the EOA address from the private key
+    const eoaAddress = await getEOAAddress(privateKey);
+    
+    // Check if getEOAAddress returned an error
+    if (eoaAddress.startsWith('Error')) {
+      return eoaAddress;
+    }
+
+    // Load the mapped archanova accounts data
+    const mappedAccountsPath = path.join(app.getAppPath(), 'dist-electron', 'src', 'electron', 'data', 'mapped_archanova_accounts.json');
+    const mappedAccountsData = await fs.readFile(mappedAccountsPath, 'utf8');
+    const mappedAccounts = JSON.parse(mappedAccountsData);
+
+    // Search for the matching eoaAddress
+    const matchingAccount = mappedAccounts.find((account: { eoaAddress: string; archanovaAddress: string }) => 
+      account.eoaAddress.toLowerCase() === eoaAddress.toLowerCase()
+    );
+
+    if (matchingAccount) {
+      return matchingAccount.archanovaAddress;
+    } else {
+      return 'no address found'; // Return empty string if no matching account found
+    }
+  } catch (error) {
+    return `Error getting archanova address: ${error}`;
   }
 };
 

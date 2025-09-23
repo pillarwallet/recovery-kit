@@ -14,3 +14,8 @@ export const useRecoveryKit = () => {
 
   return context;
 };
+
+export const useArchanovaAddress = () => {
+  const { archanovaAddress } = useRecoveryKit();
+  return archanovaAddress;
+};

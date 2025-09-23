@@ -6,6 +6,7 @@ import {
   estimateGas,
   estimateGasNftTransfer,
   getAccountAddress,
+  getArchanovaAddress,
   getBalances,
   getDecimal,
   getEOAAddress,
@@ -67,6 +68,16 @@ app.on("ready", () => {
   ipcMain.handle("getAccountAddress", async (_, privateKey) => {
     try {
       const accountAddress = await getAccountAddress(privateKey);
+      return accountAddress;
+    } catch (error) {
+      return `Error, ${error}`;
+    }
+  });
+
+  // Handle getting the Archanova account address
+  ipcMain.handle("getArchanovaAddress", async (_, privateKey) => {
+    try {
+      const accountAddress = await getArchanovaAddress(privateKey);
       return accountAddress;
     } catch (error) {
       return `Error, ${error}`;

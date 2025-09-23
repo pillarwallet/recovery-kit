@@ -29,6 +29,7 @@ type EventPayloadMapping = {
   updateChainMapping: any;
   getEOAAddress: string;
   getAccountAddress: string;
+  getArchanovaAddress: string;
   submitMnemonic: string;
   getBalances: bigint[];
   getNftName: string | undefined;
@@ -49,6 +50,7 @@ interface Window {
     updateChainMapping: (updatedChainMapping: any) => void;
     getEOAAddress: (privateKey: string) => Promise<string>;
     getAccountAddress: (privateKey: string) => Promise<string>;
+    getArchanovaAddress: (privateKey: string) => Promise<string>;
     submitMnemonic: (mnemonicWords: string[]) => Promise<string>;
     getPrivateKey: (mnemonicWords: string[]) => Promise<string>;
     getBalances: (

@@ -16,9 +16,11 @@ import TransferToken from "./components/TransferToken";
 
 // hooks
 import { useRecoveryKit } from "./hooks/useRecoveryKit";
+import { useArchanovaAddress } from "./hooks/useRecoveryKit";
 
 const App = () => {
   const { step, setStep, accountAddress, EOAWalletAddress } = useRecoveryKit();
+  const archanovaAddress = useArchanovaAddress();
 
   const getAppScreen = (screen: number) => {
     switch (screen) {
@@ -43,23 +45,30 @@ const App = () => {
 
   return (
     <div className="flex flex-col items-start gap-4">
-      <h1 className="text-4xl font-medium">Recovery Kit</h1>
+      <h1 className="text-4xl font-medium">Recovery Kit!</h1>
       <ChangeChainMapping />
 
       {step > 1 && (
         <>
-          {accountAddress && (
-            <p className="truncate w-full text-md text-left">
-              Your <span className="font-bold">Wallet </span>address:{" "}
-              <span className="font-bold">{accountAddress}</span>
-            </p>
-          )}
           {EOAWalletAddress && (
             <p className="truncate w-full text-md text-left">
               Your <span className="font-bold">EOA Wallet </span>address:{" "}
               <span className="font-bold">{EOAWalletAddress}</span>
             </p>
           )}
+          {archanovaAddress && (
+            <p className="truncate w-full text-md text-left">
+              &#8627; Your <span className="font-bold">Archanova </span>address:{" "}
+              <span className="font-bold">{archanovaAddress}</span>
+            </p>
+          )}
+          {accountAddress && (
+            <p className="truncate w-full text-md text-left">
+              &#8627; Your <span className="font-bold">Etherspot V1 </span>address:{" "}
+              <span className="font-bold">{accountAddress}</span>
+            </p>
+          )}
+
 
           <div className="flex gap-2 items-center">
             <IoWarningOutline />

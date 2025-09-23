@@ -8,10 +8,10 @@
     "dev": "npm-run-all --parallel dev:react dev:electron",
     "dev:react": "vite",
     "dev:electron": "npm run transpile:electron && cross-env NODE_ENV=development electron .",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && mkdir -p dist-electron/src/electron && cp -r src/electron/data dist-electron/src/electron/",
     "lint": "eslint .",
     "preview": "vite preview",
-    "transpile:electron": "tsc --project src/electron/tsconfig.json",
+    "transpile:electron": "tsc --project src/electron/tsconfig.json && mkdir -p dist-electron/src/electron && cp -r src/electron/data dist-electron/src/electron/",
     "dist:mac": "npm run transpile:electron && npm run build && electron-builder --mac --arm64",
     "dist:win": "npm run transpile:electron && npm run build && electron-builder --win --x64",
     "dist:linux": "npm run transpile:electron && npm run build && electron-builder --linux --x64",
@@ -20,6 +20,7 @@
     "make": "electron-forge make"
   },
   "dependencies": {
+    "@smartwallet/sdk": "^2.5.0",
     "dotenv": "^16.4.5",
     "electron-squirrel-startup": "^1.0.1",
     "ethers": "^5.6.8",
