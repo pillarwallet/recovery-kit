@@ -185,7 +185,8 @@ app.on("ready", () => {
       recipientAddress,
       amount,
       chain,
-      privateKey
+      privateKey,
+      contractType: ContractsType
     ) => {
       try {
         const estimatedGas = await estimateGas(
@@ -194,7 +195,8 @@ app.on("ready", () => {
           recipientAddress,
           amount,
           chain,
-          privateKey
+          privateKey,
+          contractType
         );
 
         return estimatedGas;
@@ -234,7 +236,8 @@ app.on("ready", () => {
       recipientAddress,
       amount,
       chain,
-      privateKey
+      privateKey,
+      contractType: ContractsType
     ) => {
       try {
         const tx = await transferTokens(
@@ -243,7 +246,8 @@ app.on("ready", () => {
           recipientAddress,
           amount,
           chain,
-          privateKey
+          privateKey,
+          contractType
         );
 
         return tx;

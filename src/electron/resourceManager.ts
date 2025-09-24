@@ -10,6 +10,7 @@ import {
   http,
   parseUnits,
 } from "viem";
+import type { Abi } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { arbitrum, bsc, gnosis, mainnet, optimism, polygon } from "viem/chains";
 import { chainMapping } from "./main.js";
@@ -309,7 +310,8 @@ export const estimateGas = async (
   recipientAddress: string,
   amount: string,
   chain: string,
-  privateKey: string
+  privateKey: string,
+  contractType: ContractsType
 ): Promise<string> => {
   const chainUrl = chainMapping[chain as Network] || null;
 
@@ -318,6 +320,9 @@ export const estimateGas = async (
       throw new Error(`Unsupported chain: ${chain}`);
     }
 
+    /**
+     * Import ERC20 ABI
+     */
     const erc20Abi = await import(
       "./contracts/artifacts-etherspot-v1/ERC20Token.json",
       {
@@ -325,6 +330,9 @@ export const estimateGas = async (
       }
     );
 
+    /**
+     * Import Etherspot Account v1 ABI
+     */
     const personalRegistryAbi = await import(
       "./contracts/artifacts-etherspot-v1/PersonalAccountRegistry.json",
       {
@@ -332,17 +340,37 @@ export const estimateGas = async (
       }
     );
 
+    /**
+     * Import Archanova Account ABI
+     */
+    const archanovaAbi = await import(
+      "./contracts/archanova/account.json",
+      {
+        with: { type: "json" },
+      }
+    );
+
+
+    /**
+     * Create a public client
+     */
     const client = createPublicClient({
       chain: getNetworkViem(chain as Network),
       transport: http(chainUrl),
     });
 
+    /**
+     * Create a wallet client
+     */
     const wallet = createWalletClient({
       chain: getNetworkViem(chain as Network),
       transport: http(chainUrl),
       account: privateKeyToAccount(privateKey as `0x${string}`),
     });
 
+    /**
+     * Create a token contract
+     */
     const tokenContract = getContract({
       address: tokenAddress as `0x${string}`,
       abi: erc20Abi.default.abi,
@@ -355,10 +383,31 @@ export const estimateGas = async (
         : await tokenContract.read.decimals();
 
     const amountInUnits = parseUnits(amount, decimals as number);
-
     const EOAAddress = await getEOAAddress(privateKey);
 
+    /**
+     * Native token transfer
+     */
     if (tokenAddress === ethers.constants.AddressZero) {
+      /**
+       * ... for Archanova account
+       */
+      if (contractType === "archanova") {
+        const gasEstimate = await client.estimateContractGas({
+          address: accountAddress as `0x${string}`,
+          abi: (await import("./contracts/archanova/account.json", { with: { type: "json" } })).default.abi as Abi,
+          functionName: "executeTransaction",
+          args: [recipientAddress, amountInUnits, "0x"],
+          account: EOAAddress as `0x${string}`,
+        });
+        const gasPriceInWei = await client.getGasPrice();
+        const totalCostInWei = gasEstimate * gasPriceInWei;
+        return formatEther(totalCostInWei);
+      }
+
+      /**
+       * ... for Etherspot Account v1
+       */
       const gasEstimate = await client.estimateContractGas({
         address:
           ETHERSPOT_V1_PERSONAL_ACCOUNT_REGISTRY_ADDRESS as `0x${string}`,
@@ -369,19 +418,56 @@ export const estimateGas = async (
       });
 
       const gasPriceInWei = await client.getGasPrice();
-
       const totalCostInWei = gasEstimate * gasPriceInWei;
-
-      const totalCostInNativeToken = formatEther(totalCostInWei);
-
-      return totalCostInNativeToken;
+      return formatEther(totalCostInWei);
     } else {
+      /**
+       * ... for ERC20 token
+       */
+      /**
+       * ... for Archanova account
+       */
+      // const calldata = encodeFunctionData({
+      //   abi: erc20Abi.default.abi,
+      //   functionName: "transfer",
+      //   args: ["0x11041744893Fa72629aB93ea8adaf35A1dc24AA5", amountInUnits],
+      // });
+
+      // const gasEstimate = await client.estimateContractGas({
+      //   address:
+      //     ETHERSPOT_V1_PERSONAL_ACCOUNT_REGISTRY_ADDRESS as `0x${string}`,
+      //   abi: personalRegistryAbi.default.abi,
+      //   functionName: "executeAccountTransaction",
+      //   args: [accountAddress, tokenAddress, "0", calldata],
+      //   account: EOAAddress as `0x${string}`,
+      // });
+
+      // The ERC20 transfer
       const calldata = encodeFunctionData({
         abi: erc20Abi.default.abi,
         functionName: "transfer",
         args: [recipientAddress, amountInUnits],
       });
 
+      /**
+       * ... for Archanova account
+       */
+      if (contractType === "archanova") {
+        const gasEstimate = await client.estimateContractGas({
+          address: accountAddress as `0x${string}`,
+          abi: archanovaAbi.default.abi as Abi,
+          functionName: "executeTransaction",
+          args: [tokenAddress, "0", calldata],
+          account: EOAAddress as `0x${string}`,
+        });
+        const gasPriceInWei = await client.getGasPrice();
+        const totalCostInWei = gasEstimate * gasPriceInWei;
+        return formatEther(totalCostInWei);
+      }
+
+      /**
+       * ... for Etherspot Account v1
+       */
       const gasEstimate = await client.estimateContractGas({
         address:
           ETHERSPOT_V1_PERSONAL_ACCOUNT_REGISTRY_ADDRESS as `0x${string}`,
@@ -392,12 +478,8 @@ export const estimateGas = async (
       });
 
       const gasPriceInWei = await client.getGasPrice();
-
       const totalCostInWei = gasEstimate * gasPriceInWei;
-
-      const totalCostInNativeToken = formatEther(totalCostInWei);
-
-      return totalCostInNativeToken;
+      return formatEther(totalCostInWei);
     }
   } catch (error) {
     return `Error estimating gas for transfer: ${error}`;
@@ -410,7 +492,8 @@ export const transferTokens = async (
   recipientAddress: string,
   amount: string,
   chain: string,
-  privateKey: string
+  privateKey: string,
+  contractType: ContractsType
 ): Promise<string> => {
   const chainUrl = chainMapping[chain as Network] || null;
 
@@ -419,6 +502,9 @@ export const transferTokens = async (
   }
 
   try {
+    /**
+     * Import ERC20 ABI
+     */
     const erc20Abi = await import(
       "./contracts/artifacts-etherspot-v1/ERC20Token.json",
       {
@@ -426,6 +512,9 @@ export const transferTokens = async (
       }
     );
 
+    /**
+     * Import Etherspot Account v1 ABI
+     */
     const personalRegistryAbi = await import(
       "./contracts/artifacts-etherspot-v1/PersonalAccountRegistry.json",
       {
@@ -433,23 +522,54 @@ export const transferTokens = async (
       }
     );
 
+    /**
+     * Import Archanova Account ABI
+     */
+    const archanovaAbi = await import(
+      "./contracts/archanova/account.json",
+      {
+        with: { type: "json" },
+      }
+    );
+
+    /**
+     * Create a public client
+     */
     const client = createPublicClient({
       chain: getNetworkViem(chain as Network),
       transport: http(chainUrl),
     });
 
+    /**
+     * Create a wallet client
+     */
     const wallet = createWalletClient({
       chain: getNetworkViem(chain as Network),
       transport: http(chainUrl),
       account: privateKeyToAccount(privateKey as `0x${string}`),
     });
 
-    const accountContract = getContract({
+    /**
+     * Create a Etherspot Account v1 contract
+     */
+    const etherspotAccountContract = getContract({
       address: ETHERSPOT_V1_PERSONAL_ACCOUNT_REGISTRY_ADDRESS as `0x${string}`,
       abi: personalRegistryAbi.default.abi,
       client: wallet,
     });
 
+    /**
+     * Create a Archanova account contract
+     */
+    const archanovaAccount = getContract({
+      address: accountAddress as `0x${string}`,
+      abi: archanovaAbi.default.abi as Abi,
+      client: wallet,
+    });
+
+    /**
+     * Create a ERC20 token contract
+     */
     const tokenContract = getContract({
       address: tokenAddress as `0x${string}`,
       abi: erc20Abi.default.abi,
@@ -463,27 +583,76 @@ export const transferTokens = async (
 
     const amountInUnits = parseUnits(amount, decimals as number);
 
+    /**
+     * Native token transfer
+     */
     if (tokenAddress === ethers.constants.AddressZero) {
-      const tx = await accountContract.write.executeAccountTransaction([
-        accountAddress,
-        recipientAddress,
-        amountInUnits,
-        "0x",
-      ]);
+      /**
+       * ... for Archanova account
+       */
+      if (contractType === "archanova") {
+        const tx = await archanovaAccount.write.executeTransaction([
+          recipientAddress,
+          amountInUnits,
+          "0x",
+        ]);
 
-      const receipt = await client.waitForTransactionReceipt({
-        hash: tx,
-      });
+        const receipt = await client.waitForTransactionReceipt({
+          hash: tx,
+        });
+  
+        return receipt.transactionHash;
+      } else {
+        /**
+         * ... for Etherspot Account v1
+         */
+        const tx = await etherspotAccountContract.write.executeAccountTransaction([
+          accountAddress,
+          recipientAddress,
+          amountInUnits,
+          "0x",
+        ]);
 
-      return receipt.transactionHash;
+        const receipt = await client.waitForTransactionReceipt({
+          hash: tx,
+        });
+  
+        return receipt.transactionHash;
+      }
     } else {
+      /**
+       * ... for ERC20 token
+       */
+      /**
+       * ... for Archanova account
+       */
+
+      if (contractType === "archanova") {
+        const calldata = encodeFunctionData({
+          abi: erc20Abi.default.abi,
+          functionName: "transfer",
+          args: [recipientAddress, amountInUnits],
+        });
+
+        const tx = await archanovaAccount.write.executeTransaction([
+          tokenAddress,
+          "0",
+          calldata,
+        ]);
+        const receipt = await client.waitForTransactionReceipt({ hash: tx });
+        return receipt.transactionHash;
+      }
+
+      /**
+       * ... for Etherspot Account v1
+       */
       const calldata = encodeFunctionData({
         abi: erc20Abi.default.abi,
         functionName: "transfer",
         args: [recipientAddress, amountInUnits],
       });
 
-      const tx = await accountContract.write.executeAccountTransaction([
+      const tx = await etherspotAccountContract.write.executeAccountTransaction([
         accountAddress,
         tokenAddress,
         "0",
@@ -756,13 +925,13 @@ export const transferNft = async (
 
     // Encode the function data
     const calldataERC721 = encodeFunctionData({
-      abi: [erc721Abi.default],
+      abi: erc721Abi.default as Abi,
       functionName: "safeTransferFrom",
       args: [accountAddress, recipientAddress, nftId],
     });
 
     const calldataERC1155 = encodeFunctionData({
-      abi: [erc1155Abi.default],
+      abi: erc1155Abi.default as Abi,
       functionName: "safeTransferFrom",
       args: [accountAddress, recipientAddress, nftId, "1", "0x"],
     });

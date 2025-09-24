@@ -33,7 +33,8 @@ electron.contextBridge.exposeInMainWorld("electron", {
     recipientAddress: string,
     amount: string,
     chain: string,
-    privateKey: string
+    privateKey: string,
+    contractType: ContractsType
   ) =>
     ipcInvoke("estimateGas", [
       accountAddress,
@@ -42,6 +43,7 @@ electron.contextBridge.exposeInMainWorld("electron", {
       amount,
       chain,
       privateKey,
+      contractType,
     ]),
   estimateGasNftTransfer: (
     accountAddress: string,
@@ -63,7 +65,8 @@ electron.contextBridge.exposeInMainWorld("electron", {
     recipientAddress: string,
     amount: string,
     chain: string,
-    privateKey: string
+    privateKey: string,
+    contractType: ContractsType
   ) =>
     ipcInvoke("transferTokens", [
       accountAddress,
@@ -72,6 +75,7 @@ electron.contextBridge.exposeInMainWorld("electron", {
       amount,
       chain,
       privateKey,
+      contractType,
     ]),
   transferNft: (
     accountAddress: string,

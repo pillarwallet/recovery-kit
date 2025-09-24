@@ -82,7 +82,8 @@ interface Window {
       recipientAddress: string,
       amount: string,
       chain: string,
-      privateKey: string
+      privateKey: string,
+      contractType: ContractsType
     ) => Promise<string>;
     estimateGasNftTransfer: (
       accountAddress: string,
@@ -97,7 +98,8 @@ interface Window {
       recipientAddress: string,
       amount: string,
       chain: string,
-      privateKey: string
+      privateKey: string,
+      contractType: ContractsType
     ) => Promise<string>;
     transferNft: (
       accountAddress: string,
