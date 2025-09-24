@@ -6,7 +6,7 @@ import { isAddress } from "viem";
 import { useRecoveryKit } from "../hooks/useRecoveryKit";
 
 // utils
-import { getBlockScan, getNativeTokenSymbol, getAddressForContractType } from "../utils/index";
+import { getBlockScan, getNativeTokenSymbol, getAddressForContractType, getContractDisplayName } from "../utils/index";
 
 const TransferToken = () => {
   const { 
@@ -153,7 +153,10 @@ const TransferToken = () => {
   return (
     <div className="flex flex-col gap-4 w-full">
       <p className="text-lg text-left">
-        Transfer {selectedAsset?.balance || 0}{" "}
+        {getContractDisplayName(contract || "etherspot-v1")}
+      </p>
+      <p className="text-lg text-left">
+        You are transferring {selectedAsset?.balance || 0}{" "}
         {selectedAsset && "name" in selectedAsset
           ? `${selectedAsset.name} (${selectedAsset.symbol})`
           : `${selectedAsset?.tokenAddress.substring(
@@ -189,7 +192,7 @@ const TransferToken = () => {
             className="text-base bg-[#A55CD6] hover:bg-[#B578DD] px-6 py-2 rounded-xl text-white mt-8"
             onClick={() => handleSubmit}
           >
-            Continue
+            Estimate Transfer Cost
           </button>
         )}
       </form>
@@ -204,7 +207,7 @@ const TransferToken = () => {
             </span>
             . You currently have {nativeTokenBalance}{" "}
             {getNativeTokenSymbol(selectedAsset?.chain as ChainType)} in your
-            Wallet.
+            EOA Wallet to pay for this transaction.
           </p>
           {isNotEnoughGasToken && (
             <p className="text-sm text-left">
