@@ -8,6 +8,8 @@ import {
   getAccountAddress,
   getArchanovaAddress,
   getBalances,
+  estimateArchanovaDeploymentCost,
+  deployArchanovaContract,
   getCode,
   getDecimal,
   getEOAAddress,
@@ -110,6 +112,26 @@ app.on("ready", () => {
     try {
       const code = await getCode(address, chain);
       return code;
+    } catch (error) {
+      return `Error, ${error}`;
+    }
+  });
+
+  // Handle estimating Archanova deployment cost
+  ipcMain.handle("estimateArchanovaDeploymentCost", async (_, chain, privateKey, archanovaAddress) => {
+    try {
+      const cost = await estimateArchanovaDeploymentCost(chain, privateKey, archanovaAddress);
+      return cost;
+    } catch (error) {
+      return `Error, ${error}`;
+    }
+  });
+
+  // Handle deploying Archanova contract
+  ipcMain.handle("deployArchanovaContract", async (_, chain, privateKey, archanovaAddress) => {
+    try {
+      const txHash = await deployArchanovaContract(chain, privateKey, archanovaAddress);
+      return txHash;
     } catch (error) {
       return `Error, ${error}`;
     }

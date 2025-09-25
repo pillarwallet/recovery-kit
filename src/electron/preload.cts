@@ -15,6 +15,10 @@ electron.contextBridge.exposeInMainWorld("electron", {
     ipcInvoke("getPrivateKey", [mnemonicWords]),
   getCode: (address: string, chain: string) =>
     ipcInvoke("getCode", [address, chain]),
+  estimateArchanovaDeploymentCost: (chain: string, privateKey: string, archanovaAddress: string) =>
+    ipcInvoke("estimateArchanovaDeploymentCost", [chain, privateKey, archanovaAddress]),
+  deployArchanovaContract: (chain: string, privateKey: string, archanovaAddress: string) =>
+    ipcInvoke("deployArchanovaContract", [chain, privateKey, archanovaAddress]),
   getBalances: (accountAddress: string, tokenList: string[], chain: string) =>
     ipcInvoke("getBalances", [accountAddress, tokenList, chain]),
   getNftName: (nftAddress: string, chain: string) =>

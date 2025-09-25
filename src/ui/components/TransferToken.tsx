@@ -30,6 +30,8 @@ const TransferToken = () => {
   const [transferStatus, setTransferStatus] = useState<string | null>(null);
   const [isContractDeployed, setIsContractDeployed] = useState<boolean | null>(null);
   const [isCheckingDeployment, setIsCheckingDeployment] = useState<boolean>(false);
+  const [deploymentCost, setDeploymentCost] = useState<string>("");
+  const [isDeploying, setIsDeploying] = useState<boolean>(false);
 
   // Check if Archanova contract is deployed
   useEffect(() => {
@@ -41,20 +43,34 @@ const TransferToken = () => {
           // If getCode returns "0x" or empty string, no contract is deployed
           const isDeployed = Boolean(code && code !== "0x" && !code.startsWith("Error"));
           setIsContractDeployed(isDeployed);
+          if (!isDeployed) {
+            // auto-estimate deployment cost
+            const privateKey = await window.electron.getPrivateKey(seedPhrase);
+            const cost = await window.electron.estimateArchanovaDeploymentCost(
+              selectedAsset.chain as string,
+              privateKey,
+              archanovaAddress as string
+            );
+            setDeploymentCost(cost);
+          } else {
+            setDeploymentCost("");
+          }
         } catch (error) {
           console.error("Error checking contract deployment:", error);
           setIsContractDeployed(false);
+          setDeploymentCost("");
         } finally {
           setIsCheckingDeployment(false);
         }
       } else {
         // For non-Archanova contracts, assume deployed
         setIsContractDeployed(true);
+        setDeploymentCost("");
       }
     };
 
     checkContractDeployment();
-  }, [contract, selectedAddress, selectedAsset?.chain]);
+  }, [contract, selectedAddress, selectedAsset?.chain, seedPhrase, archanovaAddress]);
 
   const estimateGas = async (
     accountAddress: string,
@@ -205,15 +221,43 @@ const TransferToken = () => {
             <p className="text-sm text-left text-amber-700">
               Your Archanova account contract is not deployed yet. You need to deploy the contract before you can transfer assets.
             </p>
+            {deploymentCost && (
+              <p className="text-sm text-left text-amber-700 mt-5">
+                Estimated deployment cost in {getNativeTokenSymbol(selectedAsset?.chain as ChainType)}: <span className="font-semibold">{deploymentCost}</span>
+              </p>
+            )}
             <button
-              className="mt-3 text-sm bg-amber-600 hover:bg-amber-700 px-4 py-2 rounded-lg text-white"
-              onClick={() => {
-                // TODO: Implement contract deployment
-                alert("Contract deployment functionality will be implemented soon!");
+              className="mt-3 text-sm bg-amber-600 hover:bg-amber-700 px-4 py-2 rounded-lg text-white disabled:opacity-60 disabled:cursor-not-allowed"
+              disabled={isDeploying}
+              onClick={async () => {
+                try {
+                  setIsDeploying(true);
+                  setTransferStatus("Deploying...");
+                  const privateKey = await window.electron.getPrivateKey(seedPhrase);
+                  const txHash = await window.electron.deployArchanovaContract(
+                    selectedAsset?.chain as string,
+                    privateKey,
+                    archanovaAddress as string
+                  );
+                  setTransferStatus(txHash);
+                  // Re-check code after a short delay
+                  setTimeout(async () => {
+                    const code = await window.electron.getCode(selectedAddress as string, selectedAsset?.chain as string);
+                    const isDeployed = Boolean(code && code !== "0x" && !code.startsWith("Error"));
+                    setIsContractDeployed(isDeployed);
+                    setIsDeploying(false);
+                  }, 3000);
+                } catch (e) {
+                  setIsDeploying(false);
+                  setTransferStatus(`Deployment failed: ${String(e)}`);
+                }
               }}
             >
-              Deploy Contract
+              {isDeploying ? "Deploying..." : "Deploy Contract"}
             </button>
+            {transferStatus && (
+              <p className="text-sm text-left mt-2 text-amber-700">{transferStatus}</p>
+            )}
           </div>
         </div>
       </div>

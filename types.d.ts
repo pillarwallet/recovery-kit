@@ -42,6 +42,8 @@ type EventPayloadMapping = {
   transferNft: string;
   getPrivateKey: string;
   getCode: string;
+  estimateArchanovaDeploymentCost: string;
+  deployArchanovaContract: string;
 };
 
 type UnsubscribeFunction = () => void;
@@ -55,6 +57,8 @@ interface Window {
     submitMnemonic: (mnemonicWords: string[]) => Promise<string>;
     getPrivateKey: (mnemonicWords: string[]) => Promise<string>;
     getCode: (address: string, chain: string) => Promise<string>;
+    estimateArchanovaDeploymentCost: (chain: string, privateKey: string, archanovaAddress: string) => Promise<string>;
+    deployArchanovaContract: (chain: string, privateKey: string, archanovaAddress: string) => Promise<string>;
     getBalances: (
       accountAddress: string,
       tokenList: string[],

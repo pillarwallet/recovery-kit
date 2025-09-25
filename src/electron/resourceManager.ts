@@ -8,9 +8,10 @@ import {
   formatEther,
   getContract,
   http,
+  parseAbi,
   parseUnits,
 } from "viem";
-import type { Abi } from "viem";
+import type { Abi, EstimateGasErrorType } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { arbitrum, bsc, gnosis, mainnet, optimism, polygon } from "viem/chains";
 import { chainMapping } from "./main.js";
@@ -290,6 +291,151 @@ export const getCode = async (
     return code || "0x";
   } catch (error) {
     return `Error getting code for address: ${error}`;
+  }
+};
+
+export const estimateArchanovaDeploymentCost = async (
+  chain: string,
+  privateKey: string,
+  _archanovaAddress: string
+): Promise<string> => {
+  const chainUrl = chainMapping[chain as Network] || null;
+
+  if (!chainUrl) {
+    throw new Error(`Unsupported chain: ${chain}`);
+  }
+
+  try {
+    // const archanovaAbi = await import(
+    //   "./contracts/archanova/account.json",
+    //   {
+    //     with: { type: "json" },
+    //   }
+    // );
+
+    // const bytecode = (archanovaAbi.default.bytecode?.object as `0x${string}` || archanovaAbi.default.bytecode) as `0x${string}`;
+
+    const client = createPublicClient({
+      chain: getNetworkViem(chain as Network),
+      transport: http(chainUrl),
+    });
+
+    // Touch the provided Archanova address to satisfy type usage and potential future logic hooks
+    try {
+      await client.getCode({ address: _archanovaAddress as `0x${string}` });
+    } catch {
+      // ignore
+    }
+
+    const wallet = createWalletClient({
+      chain: getNetworkViem(chain as Network),
+      transport: http(chainUrl),
+      account: privateKeyToAccount(privateKey as `0x${string}`),
+    });
+
+    console.log("archanovaAddress", _archanovaAddress);
+
+    const calldata = encodeFunctionData({
+      abi: [{
+        inputs: [{
+          internalType: "address",
+          name: "address",
+          type: "address"
+        }],
+        name: "unsafeCreateAccount",
+        outputs: [],
+        stateMutability: "nonpayable",
+        type: "function"
+      }],
+      functionName: "unsafeCreateAccount",
+      args: [_archanovaAddress as `0x${string}`],
+    });
+
+    const gasEstimate = await client.estimateGas({
+      account: "0x5913711B94F0e3c0fC933E400DF94321436163FE",
+      data: calldata,
+    });
+
+    console.log("gasEstimate", gasEstimate);
+
+    const gasPriceInWei = await client.getGasPrice();
+    const totalCostInWei = gasEstimate * gasPriceInWei;
+
+    return formatEther(totalCostInWei);
+  } catch (e) {
+    const error = e as EstimateGasErrorType;
+    return `We ran into an issue: ${error.shortMessage} You need around 0.0004 ETH in your EOA Wallet to deploy the contract.`;
+  }
+};
+
+export const deployArchanovaContract = async (
+  chain: string,
+  privateKey: string,
+  archanovaAddress: string
+): Promise<string> => {
+  const chainUrl = chainMapping[chain as Network] || null;
+
+  if (!chainUrl) {
+    throw new Error(`Unsupported chain: ${chain}`);
+  }
+
+  try {
+    const archanovaAbi = await import(
+      "./contracts/archanova/account.json",
+      {
+        with: { type: "json" },
+      }
+    );
+
+    const abi = archanovaAbi.default.abi as Abi;
+    type SolcBytecode = { object: string };
+    const rawBytecode: unknown = (archanovaAbi.default as { bytecode?: string | SolcBytecode }).bytecode;
+    let bytecodeHex: `0x${string}`;
+    if (typeof rawBytecode === "string") {
+      bytecodeHex = (rawBytecode.startsWith("0x") ? rawBytecode : (`0x${rawBytecode}`)) as `0x${string}`;
+    } else if (
+      rawBytecode &&
+      typeof (rawBytecode as SolcBytecode).object === "string"
+    ) {
+      const objectHex = (rawBytecode as SolcBytecode).object as string;
+      bytecodeHex = (objectHex.startsWith("0x") ? objectHex : (`0x${objectHex}`)) as `0x${string}`;
+    } else {
+      throw new Error("Invalid Archanova bytecode format in ABI file");
+    }
+
+    const wallet = createWalletClient({
+      chain: getNetworkViem(chain as Network),
+      transport: http(chainUrl),
+      account: privateKeyToAccount(privateKey as `0x${string}`),
+    });
+
+    // Deploy contract using viem wallet client
+    // const hash = await wallet.deployContract({
+    //   abi,
+    //   account: wallet.account,
+    //   bytecode: bytecodeHex,
+    //   args: [],
+    // });
+    /**
+     * Call the deployment contract
+     */
+    const hash = await wallet.writeContract({
+      address: "0x5913711B94F0e3c0fC933E400DF94321436163FE",
+      abi,
+      functionName: "deployAccount",
+      args: [],
+    });
+
+    const client = createPublicClient({
+      chain: getNetworkViem(chain as Network),
+      transport: http(chainUrl),
+    });
+
+    const receipt = await client.waitForTransactionReceipt({ hash });
+    return receipt.transactionHash;
+  } catch (e) {
+    const error = e as EstimateGasErrorType;
+    return `We ran into an issue: ${error.shortMessage || String(e)}`;
   }
 };
 
