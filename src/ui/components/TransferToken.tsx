@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { RiExternalLinkLine } from "react-icons/ri";
 import { isAddress } from "viem";
 
@@ -28,6 +28,33 @@ const TransferToken = () => {
   const [gasEstimation, setGasEstimation] = useState<string>("");
   const [nativeTokenBalance, setNativeTokenBalance] = useState<string>();
   const [transferStatus, setTransferStatus] = useState<string | null>(null);
+  const [isContractDeployed, setIsContractDeployed] = useState<boolean | null>(null);
+  const [isCheckingDeployment, setIsCheckingDeployment] = useState<boolean>(false);
+
+  // Check if Archanova contract is deployed
+  useEffect(() => {
+    const checkContractDeployment = async () => {
+      if (contract === "archanova" && selectedAddress && selectedAsset?.chain) {
+        setIsCheckingDeployment(true);
+        try {
+          const code = await window.electron.getCode(selectedAddress, selectedAsset.chain);
+          // If getCode returns "0x" or empty string, no contract is deployed
+          const isDeployed = Boolean(code && code !== "0x" && !code.startsWith("Error"));
+          setIsContractDeployed(isDeployed);
+        } catch (error) {
+          console.error("Error checking contract deployment:", error);
+          setIsContractDeployed(false);
+        } finally {
+          setIsCheckingDeployment(false);
+        }
+      } else {
+        // For non-Archanova contracts, assume deployed
+        setIsContractDeployed(true);
+      }
+    };
+
+    checkContractDeployment();
+  }, [contract, selectedAddress, selectedAsset?.chain]);
 
   const estimateGas = async (
     accountAddress: string,
@@ -150,6 +177,48 @@ const TransferToken = () => {
 
   const isNotEnoughGasToken =
     Number(gasEstimation) > (Number(nativeTokenBalance) || 0);
+
+  // Show loading state while checking deployment
+  if (isCheckingDeployment) {
+    return (
+      <div className="flex flex-col gap-4 w-full">
+        <p className="text-lg text-left">
+          {getContractDisplayName(contract || "etherspot-v1")}
+        </p>
+        <div className="flex items-center gap-2">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#A55CD6]"></div>
+          <p className="text-sm text-left">Checking contract deployment...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show deployment required message for Archanova
+  if (contract === "archanova" && isContractDeployed === false) {
+    return (
+      <div className="flex flex-col gap-4 w-full">
+        <p className="text-lg text-left">
+          {getContractDisplayName(contract || "etherspot-v1")}
+        </p>
+        <div className="flex gap-3 items-start p-4 bg-amber-200 border-l-4 border-amber-400 rounded-r-lg">
+          <div className="flex-1">
+            <p className="text-sm text-left text-amber-700">
+              Your Archanova account contract is not deployed yet. You need to deploy the contract before you can transfer assets.
+            </p>
+            <button
+              className="mt-3 text-sm bg-amber-600 hover:bg-amber-700 px-4 py-2 rounded-lg text-white"
+              onClick={() => {
+                // TODO: Implement contract deployment
+                alert("Contract deployment functionality will be implemented soon!");
+              }}
+            >
+              Deploy Contract
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4 w-full">

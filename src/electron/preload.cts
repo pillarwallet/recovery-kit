@@ -13,6 +13,8 @@ electron.contextBridge.exposeInMainWorld("electron", {
     ipcInvoke("submitMnemonic", [mnemonicWords]),
   getPrivateKey: (mnemonicWords: string[]) =>
     ipcInvoke("getPrivateKey", [mnemonicWords]),
+  getCode: (address: string, chain: string) =>
+    ipcInvoke("getCode", [address, chain]),
   getBalances: (accountAddress: string, tokenList: string[], chain: string) =>
     ipcInvoke("getBalances", [accountAddress, tokenList, chain]),
   getNftName: (nftAddress: string, chain: string) =>

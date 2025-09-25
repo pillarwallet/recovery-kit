@@ -267,6 +267,32 @@ export const getNativeBalance = async (
   }
 };
 
+export const getCode = async (
+  address: string,
+  chain: string
+): Promise<string> => {
+  const chainUrl = chainMapping[chain as Network] || null;
+
+  try {
+    if (!chainUrl) {
+      throw new Error(`Unsupported chain: ${chain}`);
+    }
+
+    const provider = createPublicClient({
+      chain: getNetworkViem(chain as Network),
+      transport: http(chainUrl),
+    });
+
+    const code = await provider.getCode({
+      address: address as `0x${string}`,
+    });
+
+    return code || "0x";
+  } catch (error) {
+    return `Error getting code for address: ${error}`;
+  }
+};
+
 export const getDecimal = async (
   tokenAddress: string,
   chain: string

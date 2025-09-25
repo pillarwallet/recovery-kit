@@ -8,6 +8,7 @@ import {
   getAccountAddress,
   getArchanovaAddress,
   getBalances,
+  getCode,
   getDecimal,
   getEOAAddress,
   getNativeBalance,
@@ -99,6 +100,16 @@ app.on("ready", () => {
     try {
       const privateKeyResult = await getPrivateKey(mnemonicWords);
       return privateKeyResult;
+    } catch (error) {
+      return `Error, ${error}`;
+    }
+  });
+
+  // Handle getting contract code
+  ipcMain.handle("getCode", async (_, address, chain) => {
+    try {
+      const code = await getCode(address, chain);
+      return code;
     } catch (error) {
       return `Error, ${error}`;
     }
