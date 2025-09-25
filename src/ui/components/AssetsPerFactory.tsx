@@ -210,7 +210,12 @@ const AssetsPerFactory = ({ contractType }: AssetsPerFactoryType) => {
     const chainBalances: BalancesByChain = {};
     setIsLoading(true);
 
-    for (const [chain, tokenList] of Object.entries(tokenLists)) {
+    // For Archanova, only fetch ethereum mainnet balances
+    const chainsToFetch = contractType === "archanova" 
+      ? { ethereum: tokenLists.ethereum }
+      : tokenLists;
+
+    for (const [chain, tokenList] of Object.entries(chainsToFetch)) {
       const balancesForChain = await getAllBalances(
         tokenList.tokens as TokenList[],
         chain

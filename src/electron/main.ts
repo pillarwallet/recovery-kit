@@ -7,6 +7,7 @@ import {
   estimateGasNftTransfer,
   getAccountAddress,
   getArchanovaAddress,
+  getArchanovaAccountId,
   getBalances,
   estimateArchanovaDeploymentCost,
   deployArchanovaContract,
@@ -39,7 +40,9 @@ let chainMapping = {
 
 app.on("ready", () => {
   const mainWindow = new BrowserWindow({
-    width: 680,
+    title: "Recovery Kit",
+    height: 600,
+    width: 1000,
     webPreferences: {
       preload: getPreloadPath(),
     },
@@ -82,6 +85,16 @@ app.on("ready", () => {
     try {
       const accountAddress = await getArchanovaAddress(privateKey);
       return accountAddress;
+    } catch (error) {
+      return `Error, ${error}`;
+    }
+  });
+
+  // Handle getting the Archanova Account ID
+  ipcMain.handle("getArchanovaAccountId", async (_, privateKey) => {
+    try {
+      const accountIdResult = await getArchanovaAccountId(privateKey);
+      return accountIdResult;
     } catch (error) {
       return `Error, ${error}`;
     }

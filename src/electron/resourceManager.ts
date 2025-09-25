@@ -8,7 +8,6 @@ import {
   formatEther,
   getContract,
   http,
-  parseAbi,
   parseUnits,
 } from "viem";
 import type { Abi, EstimateGasErrorType } from "viem";
@@ -18,6 +17,7 @@ import { chainMapping } from "./main.js";
 import { promises as fs } from "fs";
 import * as path from "path";
 import { app } from "electron";
+import archanovaAllAbi from "./contracts/archanova/all.json" with { type: "json" };
 
 // utils
 import {
@@ -134,6 +134,38 @@ export const getArchanovaAddress = async (
     }
   } catch (error) {
     return `Error getting archanova address: ${error}`;
+  }
+};
+
+export const getArchanovaAccountId = async (
+  privateKey: string
+): Promise<string> => {
+  try {
+    // Get the EOA address from the private key
+    const eoaAddress = await getEOAAddress(privateKey);
+    
+    // Check if getEOAAddress returned an error
+    if (eoaAddress.startsWith('Error')) {
+      return eoaAddress;
+    }
+
+    // Load the mapped archanova accounts data
+    const mappedAccountsPath = path.join(app.getAppPath(), 'dist-electron', 'src', 'electron', 'data', 'mapped_archanova_accounts.json');
+    const mappedAccountsData = await fs.readFile(mappedAccountsPath, 'utf8');
+    const mappedAccounts = JSON.parse(mappedAccountsData);
+
+    // Search for the matching eoaAddress
+    const matchingAccount = mappedAccounts.find((account: { eoaAddress: string; accountId: number }) => 
+      account.eoaAddress.toLowerCase() === eoaAddress.toLowerCase()
+    );
+
+    if (matchingAccount) {
+      return matchingAccount.accountId.toString();
+    } else {
+      return 'no account id found'; // Return empty string if no matching account found
+    }
+  } catch (error) {
+    return `Error getting archanova account id: ${error}`;
   }
 };
 
@@ -299,6 +331,14 @@ export const estimateArchanovaDeploymentCost = async (
   privateKey: string,
   _archanovaAddress: string
 ): Promise<string> => {
+  /**
+   * NOTE: This is currently not in use
+   * whilst we figure out how we get around the
+   * guardian contract issue.
+   * 
+   * This function is presently a work in 
+   * progress and should be ignored.
+   */
   const chainUrl = chainMapping[chain as Network] || null;
 
   if (!chainUrl) {
@@ -306,15 +346,6 @@ export const estimateArchanovaDeploymentCost = async (
   }
 
   try {
-    // const archanovaAbi = await import(
-    //   "./contracts/archanova/account.json",
-    //   {
-    //     with: { type: "json" },
-    //   }
-    // );
-
-    // const bytecode = (archanovaAbi.default.bytecode?.object as `0x${string}` || archanovaAbi.default.bytecode) as `0x${string}`;
-
     const client = createPublicClient({
       chain: getNetworkViem(chain as Network),
       transport: http(chainUrl),
@@ -333,30 +364,16 @@ export const estimateArchanovaDeploymentCost = async (
       account: privateKeyToAccount(privateKey as `0x${string}`),
     });
 
-    console.log("archanovaAddress", _archanovaAddress);
+    const eoaAddress = await getEOAAddress(privateKey);
+    const accountId = await getArchanovaAccountId(privateKey);
 
-    const calldata = encodeFunctionData({
-      abi: [{
-        inputs: [{
-          internalType: "address",
-          name: "address",
-          type: "address"
-        }],
-        name: "unsafeCreateAccount",
-        outputs: [],
-        stateMutability: "nonpayable",
-        type: "function"
-      }],
+    const gasEstimate = await client.estimateContractGas({
+      address: "0x5913711B94F0e3c0fC933E400DF94321436163FE",
+      abi: archanovaAllAbi.AccountProviderV2.abi,
       functionName: "unsafeCreateAccount",
-      args: [_archanovaAddress as `0x${string}`],
+      args: [BigInt(accountId), eoaAddress, "0x0000000000000000000000000000000000000000000000000000000000000000", "0x0000000000000000000000000000000000000000000000000000000000000000", 0],
+      account: wallet.account,
     });
-
-    const gasEstimate = await client.estimateGas({
-      account: "0x5913711B94F0e3c0fC933E400DF94321436163FE",
-      data: calldata,
-    });
-
-    console.log("gasEstimate", gasEstimate);
 
     const gasPriceInWei = await client.getGasPrice();
     const totalCostInWei = gasEstimate * gasPriceInWei;
@@ -364,15 +381,23 @@ export const estimateArchanovaDeploymentCost = async (
     return formatEther(totalCostInWei);
   } catch (e) {
     const error = e as EstimateGasErrorType;
-    return `We ran into an issue: ${error.shortMessage} You need around 0.0004 ETH in your EOA Wallet to deploy the contract.`;
+    return `We ran into an issue: ${error.shortMessage || String(e)} You need around 0.0004 ETH in your EOA Wallet to deploy the contract.`;
   }
 };
 
 export const deployArchanovaContract = async (
   chain: string,
   privateKey: string,
-  archanovaAddress: string
+  _archanovaAddress: string
 ): Promise<string> => {
+  /**
+   * NOTE: This is currently not in use
+   * whilst we figure out how we get around the
+   * guardian contract issue.
+   * 
+   * This function is presently a work in 
+   * progress and should be ignored.
+   */
   const chainUrl = chainMapping[chain as Network] || null;
 
   if (!chainUrl) {
@@ -403,19 +428,27 @@ export const deployArchanovaContract = async (
       throw new Error("Invalid Archanova bytecode format in ABI file");
     }
 
+    const client = createPublicClient({
+      chain: getNetworkViem(chain as Network),
+      transport: http(chainUrl),
+    });
+
     const wallet = createWalletClient({
       chain: getNetworkViem(chain as Network),
       transport: http(chainUrl),
       account: privateKeyToAccount(privateKey as `0x${string}`),
     });
 
-    // Deploy contract using viem wallet client
-    // const hash = await wallet.deployContract({
-    //   abi,
-    //   account: wallet.account,
-    //   bytecode: bytecodeHex,
-    //   args: [],
-    // });
+    // Touch the provided Archanova address to satisfy type usage and potential future logic hooks
+    try {
+      await client.getCode({ address: _archanovaAddress as `0x${string}` });
+    } catch {
+      // ignore
+    }
+
+    // Use bytecodeHex for potential future direct deployment logic
+    console.log("Bytecode ready for deployment:", bytecodeHex ? "yes" : "no");
+
     /**
      * Call the deployment contract
      */
@@ -424,11 +457,6 @@ export const deployArchanovaContract = async (
       abi,
       functionName: "deployAccount",
       args: [],
-    });
-
-    const client = createPublicClient({
-      chain: getNetworkViem(chain as Network),
-      transport: http(chainUrl),
     });
 
     const receipt = await client.waitForTransactionReceipt({ hash });

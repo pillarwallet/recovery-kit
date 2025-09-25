@@ -1,5 +1,5 @@
 // icons
-import { FaRedo, FaArrowRight } from "react-icons/fa";
+import { FaRedo, FaArrowRight, FaPlusCircle } from "react-icons/fa";
 import { IoMdReturnLeft } from "react-icons/io";
 import { IoWarningOutline } from "react-icons/io5";
 
@@ -48,8 +48,8 @@ const App = () => {
 
   return (
     <div className="flex flex-col items-start gap-4">
-      <h1 className="text-4xl font-medium">Recovery Kit</h1>
-      <p className="text-xs text-left mt-[-10px]">
+      <h1 className="text-4xl font-medium"><FaPlusCircle className="inline mr-0 mb-2" /> Recovery Kit</h1>
+      <p className="text-xs text-left mt-[-15px] ml-11">
         For Etherspot and Pillar Wallet users
       </p>
       <ChangeChainMapping />
