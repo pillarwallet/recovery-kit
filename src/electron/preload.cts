@@ -83,7 +83,8 @@ electron.contextBridge.exposeInMainWorld("electron", {
     nftAddress: string,
     nftId: string,
     chain: string,
-    privateKey: string
+    privateKey: string,
+    contractType: ContractsType
   ) =>
     ipcInvoke("transferNft", [
       accountAddress,
@@ -92,6 +93,7 @@ electron.contextBridge.exposeInMainWorld("electron", {
       nftId,
       chain,
       privateKey,
+      contractType,
     ]),
 } satisfies Window["electron"]);
 

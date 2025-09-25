@@ -267,7 +267,8 @@ app.on("ready", () => {
       nftAddress,
       nftId,
       chain,
-      privateKey
+      privateKey,
+      contractType: ContractsType
     ) => {
       try {
         const tx = await transferNft(
@@ -276,7 +277,8 @@ app.on("ready", () => {
           nftAddress,
           nftId,
           chain,
-          privateKey
+          privateKey,
+          contractType
         );
 
         return tx;

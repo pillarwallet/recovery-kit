@@ -107,7 +107,8 @@ interface Window {
       nftAddress: string,
       nftId: string,
       chain: string,
-      privateKey: string
+      privateKey: string,
+      contractType: ContractsType
     ) => Promise<string>;
   };
 }

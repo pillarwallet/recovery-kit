@@ -1,5 +1,5 @@
 // icons
-import { FaRedo, FaChevronCircleRight, FaArrowRight } from "react-icons/fa";
+import { FaRedo, FaArrowRight } from "react-icons/fa";
 import { IoMdReturnLeft } from "react-icons/io";
 import { IoWarningOutline } from "react-icons/io5";
 
@@ -48,7 +48,10 @@ const App = () => {
 
   return (
     <div className="flex flex-col items-start gap-4">
-      <h1 className="text-4xl font-medium">Etherspot Recovery Kit</h1>
+      <h1 className="text-4xl font-medium">Recovery Kit</h1>
+      <p className="text-xs text-left mt-[-10px]">
+        For Etherspot and Pillar Wallet users
+      </p>
       <ChangeChainMapping />
       <p className="text-md text-left mb-0">
         Etherspot Recovery Kit is a tool to help you recover your assets from your Etherspot V1 and Archanova accounts. This tool talks directly to your account on the blockchain.

@@ -125,7 +125,8 @@ const TransferToken = () => {
           tokenAddress as string,
           selectedAsset.tokenId as string,
           selectedAsset?.chain as string,
-          privateKey
+          privateKey,
+          contract || "etherspot-v1"
         );
 
         setTransferStatus(result);

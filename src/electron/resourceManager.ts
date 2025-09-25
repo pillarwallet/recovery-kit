@@ -395,7 +395,7 @@ export const estimateGas = async (
       if (contractType === "archanova") {
         const gasEstimate = await client.estimateContractGas({
           address: accountAddress as `0x${string}`,
-          abi: (await import("./contracts/archanova/account.json", { with: { type: "json" } })).default.abi as Abi,
+          abi: archanovaAbi.default.abi as Abi,
           functionName: "executeTransaction",
           args: [recipientAddress, amountInUnits, "0x"],
           account: EOAAddress as `0x${string}`,
@@ -424,23 +424,6 @@ export const estimateGas = async (
       /**
        * ... for ERC20 token
        */
-      /**
-       * ... for Archanova account
-       */
-      // const calldata = encodeFunctionData({
-      //   abi: erc20Abi.default.abi,
-      //   functionName: "transfer",
-      //   args: ["0x11041744893Fa72629aB93ea8adaf35A1dc24AA5", amountInUnits],
-      // });
-
-      // const gasEstimate = await client.estimateContractGas({
-      //   address:
-      //     ETHERSPOT_V1_PERSONAL_ACCOUNT_REGISTRY_ADDRESS as `0x${string}`,
-      //   abi: personalRegistryAbi.default.abi,
-      //   functionName: "executeAccountTransaction",
-      //   args: [accountAddress, tokenAddress, "0", calldata],
-      //   account: EOAAddress as `0x${string}`,
-      // });
 
       // The ERC20 transfer
       const calldata = encodeFunctionData({
@@ -876,7 +859,8 @@ export const transferNft = async (
   nftAddress: string,
   nftId: string,
   chain: string,
-  privateKey: string
+  privateKey: string,
+  contractType: ContractsType
 ): Promise<string> => {
   const chainUrl = chainMapping[chain as Network] || null;
 
@@ -887,6 +871,13 @@ export const transferNft = async (
   try {
     const personalRegistryAbi = await import(
       "./contracts/artifacts-etherspot-v1/PersonalAccountRegistry.json",
+      {
+        with: { type: "json" },
+      }
+    );
+
+    const archanovaAbi = await import(
+      "./contracts/archanova/account.json",
       {
         with: { type: "json" },
       }
@@ -917,9 +908,21 @@ export const transferNft = async (
       account: privateKeyToAccount(privateKey as `0x${string}`),
     });
 
-    const accountContract = getContract({
+    /**
+     * Create a Etherspot Account v1 contract
+     */
+    const etherspotAccountContract = getContract({
       address: ETHERSPOT_V1_PERSONAL_ACCOUNT_REGISTRY_ADDRESS as `0x${string}`,
       abi: personalRegistryAbi.default.abi,
+      client: wallet,
+    });
+
+    /**
+     * Create a Archanova account contract
+     */
+    const archanovaAccount = getContract({
+      address: accountAddress as `0x${string}`,
+      abi: archanovaAbi.default.abi as Abi,
       client: wallet,
     });
 
@@ -938,7 +941,17 @@ export const transferNft = async (
 
     // Try ERC721 transfer
     try {
-      const tx = await accountContract.write.executeAccountTransaction([
+      if (contractType === "archanova") {
+        const tx = await archanovaAccount.write.executeTransaction([
+          nftAddress,
+          "0",
+          calldataERC721,
+        ]);
+        const receipt = await client.waitForTransactionReceipt({ hash: tx });
+        return receipt.transactionHash;
+      }
+
+      const tx = await etherspotAccountContract.write.executeAccountTransaction([
         accountAddress,
         nftAddress,
         "0",
@@ -955,7 +968,17 @@ export const transferNft = async (
 
       // Fallback to ERC1155 transfer
       try {
-        const tx = await accountContract.write.executeAccountTransaction([
+        if (contractType === "archanova") {
+          const tx = await archanovaAccount.write.executeTransaction([
+            nftAddress,
+            "0",
+            calldataERC1155,
+          ]);
+          const receipt = await client.waitForTransactionReceipt({ hash: tx });
+          return receipt.transactionHash;
+        }
+
+        const tx = await etherspotAccountContract.write.executeAccountTransaction([
           accountAddress,
           nftAddress,
           "0",
