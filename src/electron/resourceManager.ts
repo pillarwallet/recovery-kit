@@ -130,7 +130,7 @@ export const getArchanovaAddress = async (
     if (matchingAccount) {
       return matchingAccount.archanovaAddress;
     } else {
-      return 'no address found';  
+      return 'no address found';
     }
   } catch (error) {
     return `Error getting archanova address: ${error}`;
