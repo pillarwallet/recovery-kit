@@ -130,7 +130,7 @@ export const getArchanovaAddress = async (
     if (matchingAccount) {
       return matchingAccount.archanovaAddress;
     } else {
-      return 'no address found'; // Return empty string if no matching account found
+      return 'no address found';  
     }
   } catch (error) {
     return `Error getting archanova address: ${error}`;
@@ -162,7 +162,7 @@ export const getArchanovaAccountId = async (
     if (matchingAccount) {
       return matchingAccount.accountId.toString();
     } else {
-      return 'no account id found'; // Return empty string if no matching account found
+      return 'no account id found';
     }
   } catch (error) {
     return `Error getting archanova account id: ${error}`;
