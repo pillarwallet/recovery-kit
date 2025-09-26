@@ -6,7 +6,12 @@ import {
   estimateGas,
   estimateGasNftTransfer,
   getAccountAddress,
+  getArchanovaAddress,
+  getArchanovaAccountId,
   getBalances,
+  estimateArchanovaDeploymentCost,
+  deployArchanovaContract,
+  getCode,
   getDecimal,
   getEOAAddress,
   getNativeBalance,
@@ -35,7 +40,9 @@ let chainMapping = {
 
 app.on("ready", () => {
   const mainWindow = new BrowserWindow({
-    width: 680,
+    title: "Recovery Kit",
+    height: 600,
+    width: 1000,
     webPreferences: {
       preload: getPreloadPath(),
     },
@@ -73,6 +80,26 @@ app.on("ready", () => {
     }
   });
 
+  // Handle getting the Archanova account address
+  ipcMain.handle("getArchanovaAddress", async (_, privateKey) => {
+    try {
+      const accountAddress = await getArchanovaAddress(privateKey);
+      return accountAddress;
+    } catch (error) {
+      return `Error, ${error}`;
+    }
+  });
+
+  // Handle getting the Archanova Account ID
+  ipcMain.handle("getArchanovaAccountId", async (_, privateKey) => {
+    try {
+      const accountIdResult = await getArchanovaAccountId(privateKey);
+      return accountIdResult;
+    } catch (error) {
+      return `Error, ${error}`;
+    }
+  });
+
   // Handle the mnemonic from the frontend
   ipcMain.handle("submitMnemonic", async (_, mnemonicWords: string[]) => {
     try {
@@ -88,6 +115,36 @@ app.on("ready", () => {
     try {
       const privateKeyResult = await getPrivateKey(mnemonicWords);
       return privateKeyResult;
+    } catch (error) {
+      return `Error, ${error}`;
+    }
+  });
+
+  // Handle getting contract code
+  ipcMain.handle("getCode", async (_, address, chain) => {
+    try {
+      const code = await getCode(address, chain);
+      return code;
+    } catch (error) {
+      return `Error, ${error}`;
+    }
+  });
+
+  // Handle estimating Archanova deployment cost
+  ipcMain.handle("estimateArchanovaDeploymentCost", async (_, chain, privateKey, archanovaAddress) => {
+    try {
+      const cost = await estimateArchanovaDeploymentCost(chain, privateKey, archanovaAddress);
+      return cost;
+    } catch (error) {
+      return `Error, ${error}`;
+    }
+  });
+
+  // Handle deploying Archanova contract
+  ipcMain.handle("deployArchanovaContract", async (_, chain, privateKey, archanovaAddress) => {
+    try {
+      const txHash = await deployArchanovaContract(chain, privateKey, archanovaAddress);
+      return txHash;
     } catch (error) {
       return `Error, ${error}`;
     }
@@ -174,7 +231,8 @@ app.on("ready", () => {
       recipientAddress,
       amount,
       chain,
-      privateKey
+      privateKey,
+      contractType: ContractsType
     ) => {
       try {
         const estimatedGas = await estimateGas(
@@ -183,7 +241,8 @@ app.on("ready", () => {
           recipientAddress,
           amount,
           chain,
-          privateKey
+          privateKey,
+          contractType
         );
 
         return estimatedGas;
@@ -223,7 +282,8 @@ app.on("ready", () => {
       recipientAddress,
       amount,
       chain,
-      privateKey
+      privateKey,
+      contractType: ContractsType
     ) => {
       try {
         const tx = await transferTokens(
@@ -232,7 +292,8 @@ app.on("ready", () => {
           recipientAddress,
           amount,
           chain,
-          privateKey
+          privateKey,
+          contractType
         );
 
         return tx;
@@ -252,7 +313,8 @@ app.on("ready", () => {
       nftAddress,
       nftId,
       chain,
-      privateKey
+      privateKey,
+      contractType: ContractsType
     ) => {
       try {
         const tx = await transferNft(
@@ -261,7 +323,8 @@ app.on("ready", () => {
           nftAddress,
           nftId,
           chain,
-          privateKey
+          privateKey,
+          contractType
         );
 
         return tx;

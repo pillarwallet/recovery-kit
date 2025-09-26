@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { RiExternalLinkLine } from "react-icons/ri";
 import { isAddress } from "viem";
 
@@ -6,15 +6,71 @@ import { isAddress } from "viem";
 import { useRecoveryKit } from "../hooks/useRecoveryKit";
 
 // utils
-import { getBlockScan, getNativeTokenSymbol } from "../utils/index";
+import { getBlockScan, getNativeTokenSymbol, getAddressForContractType, getContractDisplayName } from "../utils/index";
 
 const TransferToken = () => {
-  const { selectedAsset, accountAddress, seedPhrase, EOAWalletAddress } =
-    useRecoveryKit();
+  const { 
+    selectedAsset, 
+    accountAddress, 
+    seedPhrase, 
+    EOAWalletAddress,
+    contract,
+    archanovaAddress 
+  } = useRecoveryKit();
+  
+  // Get the appropriate address based on contract type
+  const selectedAddress = getAddressForContractType(contract || "etherspot-v1", {
+    accountAddress,
+    archanovaAddress,
+    EOAWalletAddress,
+  });
   const [transferAddress, setTransferAddress] = useState<string>("");
   const [gasEstimation, setGasEstimation] = useState<string>("");
   const [nativeTokenBalance, setNativeTokenBalance] = useState<string>();
   const [transferStatus, setTransferStatus] = useState<string | null>(null);
+  const [isContractDeployed, setIsContractDeployed] = useState<boolean | null>(null);
+  const [isCheckingDeployment, setIsCheckingDeployment] = useState<boolean>(false);
+  const [deploymentCost, setDeploymentCost] = useState<string>("");
+  const [isDeploying] = useState<boolean>(false);
+
+  // Check if Archanova contract is deployed
+  useEffect(() => {
+    const checkContractDeployment = async () => {
+      if (contract === "archanova" && selectedAddress && selectedAsset?.chain) {
+        setIsCheckingDeployment(true);
+        try {
+          const code = await window.electron.getCode(selectedAddress, selectedAsset.chain);
+          // If getCode returns "0x" or empty string, no contract is deployed
+          const isDeployed = Boolean(code && code !== "0x" && !code.startsWith("Error"));
+          setIsContractDeployed(isDeployed);
+          if (!isDeployed) {
+            // auto-estimate deployment cost
+            const privateKey = await window.electron.getPrivateKey(seedPhrase);
+            const cost = await window.electron.estimateArchanovaDeploymentCost(
+              selectedAsset.chain as string,
+              privateKey,
+              archanovaAddress as string
+            );
+            setDeploymentCost(cost);
+          } else {
+            setDeploymentCost("");
+          }
+        } catch (error) {
+          console.error("Error checking contract deployment:", error);
+          setIsContractDeployed(false);
+          setDeploymentCost("");
+        } finally {
+          setIsCheckingDeployment(false);
+        }
+      } else {
+        // For non-Archanova contracts, assume deployed
+        setIsContractDeployed(true);
+        setDeploymentCost("");
+      }
+    };
+
+    checkContractDeployment();
+  }, [contract, selectedAddress, selectedAsset?.chain, seedPhrase, archanovaAddress]);
 
   const estimateGas = async (
     accountAddress: string,
@@ -30,7 +86,8 @@ const TransferToken = () => {
       recipientAddress,
       amount,
       chain,
-      privateKey
+      privateKey,
+      contract || "etherspot-v1"
     );
 
     return estimatedGas;
@@ -56,7 +113,7 @@ const TransferToken = () => {
     ) {
       const estimatedGasNftTransfer =
         await window.electron.estimateGasNftTransfer(
-          accountAddress as string,
+          selectedAddress as string,
           transferAddress,
           tokenAddress as string,
           selectedAsset.tokenId as string,
@@ -66,7 +123,7 @@ const TransferToken = () => {
       setGasEstimation(estimatedGasNftTransfer);
     } else {
       const estimatedGas = await estimateGas(
-        accountAddress as string,
+        selectedAddress as string,
         tokenAddress as string,
         transferAddress,
         amount as string,
@@ -106,23 +163,25 @@ const TransferToken = () => {
         selectedAsset.assetType === "nft"
       ) {
         const result = await window.electron.transferNft(
-          accountAddress as string,
+          selectedAddress as string,
           transferAddress,
           tokenAddress as string,
           selectedAsset.tokenId as string,
           selectedAsset?.chain as string,
-          privateKey
+          privateKey,
+          contract || "etherspot-v1"
         );
 
         setTransferStatus(result);
       } else {
         const result = await window.electron.transferTokens(
-          accountAddress as string,
+          selectedAddress as string,
           tokenAddress as string,
           transferAddress,
           amount as string,
           selectedAsset?.chain as string,
-          privateKey
+          privateKey,
+          contract || "etherspot-v1"
         );
 
         setTransferStatus(result);
@@ -135,10 +194,88 @@ const TransferToken = () => {
   const isNotEnoughGasToken =
     Number(gasEstimation) > (Number(nativeTokenBalance) || 0);
 
+  // Show loading state while checking deployment
+  if (isCheckingDeployment) {
+    return (
+      <div className="flex flex-col gap-4 w-full">
+        <p className="text-lg text-left">
+          {getContractDisplayName(contract || "etherspot-v1")}
+        </p>
+        <div className="flex items-center gap-2">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#A55CD6]"></div>
+          <p className="text-sm text-left">Checking contract deployment...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show deployment required message for Archanova
+  if (contract === "archanova" && isContractDeployed === false) {
+    return (
+      <div className="flex flex-col gap-4 w-full">
+        <p className="text-lg text-left">
+          {getContractDisplayName(contract || "etherspot-v1")}
+        </p>
+        <div className="flex gap-3 items-start p-4 bg-amber-200 border-l-4 border-amber-400 rounded-r-lg">
+          <div className="flex-1">
+            <p className="text-sm text-left text-amber-700">
+              Your Archanova account contract is not deployed yet. You need to deploy the contract before you can transfer assets.
+            </p>
+            {deploymentCost && (
+              <p className="text-sm text-left text-amber-700 mt-5">
+                Estimated deployment cost in {getNativeTokenSymbol(selectedAsset?.chain as ChainType)}: <span className="font-semibold">{deploymentCost}</span>
+              </p>
+            )}
+            <button
+              className="mt-3 text-sm bg-amber-600 hover:bg-amber-700 px-4 py-2 rounded-lg text-white disabled:opacity-60 disabled:cursor-not-allowed"
+              disabled={isDeploying}
+              onClick={async () => {
+                alert("Sorry, we're still working on this feature - check back again soon or reach out to our support team.");
+                /**
+                 * This is currently disabled whilst we figure out how we
+                 * get around the guardian contract issue.
+                 */
+                // try {
+                //   setIsDeploying(true);
+                //   setTransferStatus("Deploying...");
+                //   const privateKey = await window.electron.getPrivateKey(seedPhrase);
+                //   const txHash = await window.electron.deployArchanovaContract(
+                //     selectedAsset?.chain as string,
+                //     privateKey,
+                //     archanovaAddress as string
+                //   );
+                //   setTransferStatus(txHash);
+                //   // Re-check code after a short delay
+                //   setTimeout(async () => {
+                //     const code = await window.electron.getCode(selectedAddress as string, selectedAsset?.chain as string);
+                //     const isDeployed = Boolean(code && code !== "0x" && !code.startsWith("Error"));
+                //     setIsContractDeployed(isDeployed);
+                //     setIsDeploying(false);
+                //   }, 3000);
+                // } catch (e) {
+                //   setIsDeploying(false);
+                //   setTransferStatus(`Deployment failed: ${String(e)}`);
+                // }
+              }}
+            >
+              {isDeploying ? "Deploying..." : "Deploy Contract"}
+            </button>
+            {transferStatus && (
+              <p className="text-sm text-left mt-2 text-amber-700">{transferStatus}</p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4 w-full">
       <p className="text-lg text-left">
-        Transfer {selectedAsset?.balance || 0}{" "}
+        {getContractDisplayName(contract || "etherspot-v1")}
+      </p>
+      <p className="text-lg text-left">
+        You are transferring {selectedAsset?.balance || 0}{" "}
         {selectedAsset && "name" in selectedAsset
           ? `${selectedAsset.name} (${selectedAsset.symbol})`
           : `${selectedAsset?.tokenAddress.substring(
@@ -174,7 +311,7 @@ const TransferToken = () => {
             className="text-base bg-[#A55CD6] hover:bg-[#B578DD] px-6 py-2 rounded-xl text-white mt-8"
             onClick={() => handleSubmit}
           >
-            Continue
+            Estimate Transfer Cost
           </button>
         )}
       </form>
@@ -189,7 +326,7 @@ const TransferToken = () => {
             </span>
             . You currently have {nativeTokenBalance}{" "}
             {getNativeTokenSymbol(selectedAsset?.chain as ChainType)} in your
-            Wallet.
+            EOA Wallet to pay for this transaction.
           </p>
           {isNotEnoughGasToken && (
             <p className="text-sm text-left">

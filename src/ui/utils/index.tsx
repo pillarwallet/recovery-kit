@@ -35,3 +35,41 @@ export const allNativeTokens: Record<
   xdai: { name: "xDai", symbol: "XDAI" },
   binance: { name: "Binance Coin", symbol: "BNB" },
 };
+
+/**
+ * Centralized address selection logic based on contract type
+ * This allows for easy extension when new contract types are added
+ */
+export const getAddressForContractType = (
+  contractType: ContractsType,
+  addresses: {
+    accountAddress: string | null;
+    archanovaAddress: string | null;
+    EOAWalletAddress: string | null;
+  }
+): string | null => {
+  switch (contractType) {
+    case "etherspot-v1":
+      return addresses.accountAddress;
+    case "archanova":
+      return addresses.archanovaAddress;
+    default:
+      // Fallback to account address for unknown contract types
+      console.warn(`Unknown contract type: ${contractType}, falling back to account address`);
+      return addresses.accountAddress;
+  }
+};
+
+/**
+ * Get display name for contract type
+ */
+export const getContractDisplayName = (contractType: ContractsType): string => {
+  switch (contractType) {
+    case "etherspot-v1":
+      return "Etherspot V1";
+    case "archanova":
+      return "Archanova";
+    default:
+      return "Unknown Contract";
+  }
+};

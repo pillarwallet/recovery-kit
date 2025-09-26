@@ -15,6 +15,7 @@ const MnemonicInput = () => {
     seedPhrase,
     setSeedPhrase,
     setEOAWalletAddress,
+    setArchanovaAddress,
   } = useRecoveryKit();
   const [activeTab, setActiveTab] = useState<"phrase" | "pk">("phrase");
   const [privateKey, setPrivateKey] = useState<string>("");
@@ -27,12 +28,18 @@ const MnemonicInput = () => {
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {
-    const pastedSeedPhrase = e.clipboardData.getData("text");
-    const splitSeedPhrase = pastedSeedPhrase.split(/\s+/).slice(0, 12);
+    const pastedText = e.clipboardData.getData("text");
+    const cleanedWords = pastedText
+      .trim()
+      .replace(/[\n\t,]+/g, " ")
+      .split(/\s+/)
+      .map((w) => w.replace(/[^a-zA-Z]/g, "").toLowerCase())
+      .filter((w) => w.length > 0);
 
-    setSeedPhrase(splitSeedPhrase);
-
-    e.preventDefault();
+    if (cleanedWords.length === 12) {
+      setSeedPhrase(cleanedWords);
+      e.preventDefault();
+    }
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -65,11 +72,20 @@ const MnemonicInput = () => {
         const EOAAddress = await window.electron.getEOAAddress(privateKey);
         setEOAWalletAddress(EOAAddress);
 
+        const archanova = await window.electron.getArchanovaAddress(privateKey);
+        console.log("archanova", archanova);
+        if (archanova && !archanova.includes("Error") && archanova.includes("0x")) {
+          setArchanovaAddress(archanova);
+        } else {
+          setArchanovaAddress(null);
+        }
+
         setStep(2);
       }
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
       setError("An unexpected error occurred. Please try again.");
+      console.log(e);
       setTimeout(() => setError(null), 5000);
     } finally {
       setIsLoading(false);

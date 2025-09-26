@@ -6,7 +6,7 @@ import { formatUnits } from "viem";
 import { useRecoveryKit } from "../hooks/useRecoveryKit";
 
 // utils
-import { allNativeTokens } from "../utils";
+import { allNativeTokens, getAddressForContractType } from "../utils";
 
 // components
 import ArbitrumList from "../utils/tokens/arbitrum-tokens.json";
@@ -31,8 +31,22 @@ type AssetsPerFactoryType = {
 };
 
 const AssetsPerFactory = ({ contractType }: AssetsPerFactoryType) => {
-  const { balances, setBalances, setStep, setContract, accountAddress } =
-    useRecoveryKit();
+  const { 
+    balances, 
+    setBalances, 
+    setStep, 
+    setContract, 
+    accountAddress,
+    archanovaAddress,
+    EOAWalletAddress 
+  } = useRecoveryKit();
+  
+  // Get the appropriate address based on contract type
+  const selectedAddress = getAddressForContractType(contractType, {
+    accountAddress,
+    archanovaAddress,
+    EOAWalletAddress,
+  });
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -51,7 +65,7 @@ const AssetsPerFactory = ({ contractType }: AssetsPerFactoryType) => {
   ): Promise<string> => {
     try {
       const balance = await window.electron.getBalances(
-        accountAddress || "",
+        selectedAddress || "",
         [tokenAddress],
         chain
       );
@@ -74,7 +88,7 @@ const AssetsPerFactory = ({ contractType }: AssetsPerFactoryType) => {
   ): Promise<number> => {
     try {
       const balance = await window.electron.getNftBalance(
-        accountAddress || "",
+        selectedAddress || "",
         nftAddress,
         nftId,
         chain
@@ -130,13 +144,13 @@ const AssetsPerFactory = ({ contractType }: AssetsPerFactoryType) => {
       while (retries < maxRetries) {
         try {
           const balances = await window.electron.getBalances(
-            accountAddress as string,
+            selectedAddress as string,
             tokenAddresses,
             chain
           );
 
           const nativeBalance = await window.electron.getNativeBalance(
-            accountAddress as string,
+            selectedAddress as string,
             chain
           );
 
@@ -189,14 +203,19 @@ const AssetsPerFactory = ({ contractType }: AssetsPerFactoryType) => {
       }
       return [];
     },
-    [accountAddress]
+    [selectedAddress]
   );
 
   const fetchAllBalances = async () => {
     const chainBalances: BalancesByChain = {};
     setIsLoading(true);
 
-    for (const [chain, tokenList] of Object.entries(tokenLists)) {
+    // For Archanova, only fetch ethereum mainnet balances
+    const chainsToFetch = contractType === "archanova" 
+      ? { ethereum: tokenLists.ethereum }
+      : tokenLists;
+
+    for (const [chain, tokenList] of Object.entries(chainsToFetch)) {
       const balancesForChain = await getAllBalances(
         tokenList.tokens as TokenList[],
         chain
@@ -204,20 +223,23 @@ const AssetsPerFactory = ({ contractType }: AssetsPerFactoryType) => {
       chainBalances[chain] = balancesForChain;
     }
 
-    setBalances(chainBalances);
+    setBalances(prevBalances => ({
+      ...prevBalances,
+      [contractType]: chainBalances
+    }));
 
     setIsLoading(false);
   };
 
   useEffect(() => {
-    if (accountAddress) {
+    if (selectedAddress) {
       fetchAllBalances();
       refetchBalances();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accountAddress]);
+  }, [selectedAddress]);
 
-  const balancesCounts = Object.entries(balances).map(([chain, tokens]) => ({
+  const balancesCounts = Object.entries(balances[contractType] || {}).map(([chain, tokens]) => ({
     chain,
     count: tokens.length,
   }));

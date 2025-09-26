@@ -29,6 +29,8 @@ type EventPayloadMapping = {
   updateChainMapping: any;
   getEOAAddress: string;
   getAccountAddress: string;
+  getArchanovaAddress: string;
+  getArchanovaAccountId: string;
   submitMnemonic: string;
   getBalances: bigint[];
   getNftName: string | undefined;
@@ -40,6 +42,9 @@ type EventPayloadMapping = {
   transferTokens: string;
   transferNft: string;
   getPrivateKey: string;
+  getCode: string;
+  estimateArchanovaDeploymentCost: string;
+  deployArchanovaContract: string;
 };
 
 type UnsubscribeFunction = () => void;
@@ -49,8 +54,13 @@ interface Window {
     updateChainMapping: (updatedChainMapping: any) => void;
     getEOAAddress: (privateKey: string) => Promise<string>;
     getAccountAddress: (privateKey: string) => Promise<string>;
+    getArchanovaAddress: (privateKey: string) => Promise<string>;
+    getArchanovaAccountId: (privateKey: string) => Promise<string>;
     submitMnemonic: (mnemonicWords: string[]) => Promise<string>;
     getPrivateKey: (mnemonicWords: string[]) => Promise<string>;
+    getCode: (address: string, chain: string) => Promise<string>;
+    estimateArchanovaDeploymentCost: (chain: string, privateKey: string, archanovaAddress: string) => Promise<string>;
+    deployArchanovaContract: (chain: string, privateKey: string, archanovaAddress: string) => Promise<string>;
     getBalances: (
       accountAddress: string,
       tokenList: string[],
@@ -80,7 +90,8 @@ interface Window {
       recipientAddress: string,
       amount: string,
       chain: string,
-      privateKey: string
+      privateKey: string,
+      contractType: ContractsType
     ) => Promise<string>;
     estimateGasNftTransfer: (
       accountAddress: string,
@@ -95,7 +106,8 @@ interface Window {
       recipientAddress: string,
       amount: string,
       chain: string,
-      privateKey: string
+      privateKey: string,
+      contractType: ContractsType
     ) => Promise<string>;
     transferNft: (
       accountAddress: string,
@@ -103,7 +115,8 @@ interface Window {
       nftAddress: string,
       nftId: string,
       chain: string,
-      privateKey: string
+      privateKey: string,
+      contractType: ContractsType
     ) => Promise<string>;
   };
 }

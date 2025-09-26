@@ -1,5 +1,5 @@
 // icons
-import { FaRedo } from "react-icons/fa";
+import { FaRedo, FaArrowRight, FaPlusCircle } from "react-icons/fa";
 import { IoMdReturnLeft } from "react-icons/io";
 import { IoWarningOutline } from "react-icons/io5";
 
@@ -16,16 +16,21 @@ import TransferToken from "./components/TransferToken";
 
 // hooks
 import { useRecoveryKit } from "./hooks/useRecoveryKit";
+import { useArchanovaAddress } from "./hooks/useRecoveryKit";
 
 const App = () => {
   const { step, setStep, accountAddress, EOAWalletAddress } = useRecoveryKit();
+  const archanovaAddress = useArchanovaAddress();
 
   const getAppScreen = (screen: number) => {
     switch (screen) {
       case 1:
         return <MnemonicInput />;
       case 2:
-        return <AssetsPerFactory contractType="etherspot-v1" />;
+        return <>
+          <AssetsPerFactory contractType="etherspot-v1" />
+          <AssetsPerFactory contractType="archanova" />
+        </>
       case 3:
         return <AssetsList />;
       case 4:
@@ -43,40 +48,49 @@ const App = () => {
 
   return (
     <div className="flex flex-col items-start gap-4">
-      <h1 className="text-4xl font-medium">Recovery Kit</h1>
+      <h1 className="text-4xl font-medium"><FaPlusCircle className="inline mr-0 mb-2" /> Recovery Kit</h1>
+      <p className="text-xs text-left mt-[-15px] ml-11">
+        For Etherspot and Pillar Wallet users
+      </p>
       <ChangeChainMapping />
+      <p className="text-md text-left mb-0">
+        Etherspot Recovery Kit is a tool to help you recover your assets from your Etherspot V1 and Archanova accounts. This tool talks directly to your account on the blockchain.
+      </p>
+
+      <div className="flex gap-3 items-start p-4 bg-amber-200 border-l-4 border-amber-400 rounded-r-lg">
+        <IoWarningOutline className="text-amber-900 text-xl flex-shrink-0 mt-0.5" />
+        <div className="flex-1">
+          <p className="text-sm text-left text-amber-700">
+            As Etherspot V1 and Archanova servers are permanently unavailable, all gas fees
+            must be paid via your EOA Wallet. Please ensure it has sufficient
+            funds.
+          </p>
+        </div>
+      </div>
 
       {step > 1 && (
         <>
-          {accountAddress && (
-            <p className="truncate w-full text-md text-left">
-              Your <span className="font-bold">Wallet </span>address:{" "}
-              <span className="font-bold">{accountAddress}</span>
-            </p>
-          )}
           {EOAWalletAddress && (
-            <p className="truncate w-full text-md text-left">
+            <p className="truncate w-full text-md text-left mb-[-10px]">
               Your <span className="font-bold">EOA Wallet </span>address:{" "}
-              <span className="font-bold">{EOAWalletAddress}</span>
+              <span className="font-bold font-mono">{EOAWalletAddress}</span>
             </p>
           )}
-
-          <div className="flex gap-2 items-center">
-            <IoWarningOutline />
-            <p className="w-full text-md text-left">
-              As Etherspot V1 servers are permanently unavailable, all gas fees
-              must be paid via your EOA Wallet. Please ensure it has sufficient
-              funds.
+          {archanovaAddress && (
+              <p className="truncate w-full text-md text-left mb-[-10px] ml-3">
+                <FaArrowRight className="inline mr-1" /> Your <span className="font-bold">Archanova </span>address:{" "}
+                <span className="font-bold font-mono">{archanovaAddress}</span>
+              </p>
+          )}
+          {accountAddress && (
+            <p className="truncate w-full text-md text-left ml-3">
+              <FaArrowRight className="inline mr-1" /> Your <span className="font-bold">Etherspot V1 </span>address:{" "}
+              <span className="font-bold font-mono">{accountAddress}</span>
             </p>
-          </div>
+          )}
         </>
       )}
 
-      <p className="text-md text-left mb-4">
-        Transfer your assets from your{" "}
-        <span className="font-bold">Etherspot V1</span> accounts (this is your
-        Pillar V2 wallet) to another account.
-      </p>
       <div className="flex w-full justify-between">
         {step !== 1 && (
           <button
