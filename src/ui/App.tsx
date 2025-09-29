@@ -1,5 +1,5 @@
 // icons
-import { FaRedo, FaArrowRight, FaPlusCircle } from "react-icons/fa";
+import { FaRedo, FaArrowRight, FaPlusCircle, FaExternalLinkAlt } from "react-icons/fa";
 import { IoMdReturnLeft } from "react-icons/io";
 import { IoWarningOutline } from "react-icons/io5";
 
@@ -74,18 +74,24 @@ const App = () => {
             <p className="truncate w-full text-md text-left mb-[-10px]">
               Your <span className="font-bold">EOA Wallet </span>address:{" "}
               <span className="font-bold font-mono">{EOAWalletAddress}</span>
+              <FaExternalLinkAlt className="inline mb-1 ml-5 mr-1" /> 
+              <a href={`https://etherscan.io/address/${EOAWalletAddress}#asset-multichain`} target="_blank" rel="noopener noreferrer">View on block explorer</a>
             </p>
           )}
           {archanovaAddress && (
               <p className="truncate w-full text-md text-left mb-[-10px] ml-3">
                 <FaArrowRight className="inline mr-1" /> Your <span className="font-bold">Archanova </span>address:{" "}
                 <span className="font-bold font-mono">{archanovaAddress}</span>
+                <FaExternalLinkAlt className="inline mb-1 ml-5 mr-1" /> 
+                <a href={`https://etherscan.io/address/${archanovaAddress}#asset-multichain`} target="_blank" rel="noopener noreferrer">View on block explorer</a>
               </p>
           )}
           {accountAddress && (
             <p className="truncate w-full text-md text-left ml-3">
               <FaArrowRight className="inline mr-1" /> Your <span className="font-bold">Etherspot V1 </span>address:{" "}
               <span className="font-bold font-mono">{accountAddress}</span>
+              <FaExternalLinkAlt className="inline mb-1 ml-5 mr-1" /> 
+              <a href={`https://etherscan.io/address/${accountAddress}#asset-multichain`} target="_blank" rel="noopener noreferrer">View on block explorer</a>
             </p>
           )}
         </>

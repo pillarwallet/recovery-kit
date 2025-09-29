@@ -344,16 +344,8 @@ const TransferToken = () => {
           )}
         </div>
       )}
-      {gasEstimation && (!isNotEnoughGasToken || !Number(gasEstimation)) && (
-        <button
-          onClick={handleTransfer}
-          className="text-base bg-[#4CAF50] hover:bg-[#66BB6A] px-6 py-2 rounded-xl text-white mt-4"
-        >
-          Transfer
-        </button>
-      )}
 
-      {transferStatus?.includes("0x") ? (
+      {transferStatus && transferStatus?.includes("0x") ? (
         <a
           className="flex w-fit gap-2 text-base bg-[#A55CD6] hover:bg-[#B578DD] px-6 py-2 rounded-xl text-white mt-8"
           href={`${getBlockScan(
@@ -367,6 +359,15 @@ const TransferToken = () => {
         </a>
       ) : (
         <p className="text-sm text-left mt-4 text-white">{transferStatus}</p>
+      )}
+
+      {gasEstimation && (!isNotEnoughGasToken || !Number(gasEstimation)) && (
+        <button
+          onClick={handleTransfer}
+          className="text-base bg-[#4CAF50] hover:bg-[#66BB6A] px-6 py-2 rounded-xl text-white mt-4"
+        >
+          Transfer
+        </button>
       )}
     </div>
   );

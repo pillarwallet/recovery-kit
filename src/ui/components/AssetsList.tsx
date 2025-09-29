@@ -228,7 +228,8 @@ const AssetsList = () => {
       <p className="text-lg text-left">
         {getContractDisplayName(contract || "etherspot-v1")}
       </p>
-      <p className="text-sm text-left">Select the asset you want to move</p>
+      <p className="text-sm text-left">Select the asset you want to move.</p>
+      <p className="text-sm text-left">We're only showing a selected list of popular assets. If your token is not shown here, find the address of the token you want to add and scroll down to the bottom and click the "Add token or NFT" button. You can find the token address on the block explorer by clicking the "View on block explorer" button on the top of the page next to your account type.</p>
 
       <div className="flex mb-4 w-full">
         <button
