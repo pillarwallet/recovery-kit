@@ -17,7 +17,8 @@
     "dist:linux": "npm run transpile:electron && npm run build && electron-builder --linux --x64",
     "start": "electron-forge start",
     "package": "electron-forge package",
-    "make": "electron-forge make"
+    "make": "electron-forge make",
+    "enrich:archanova": "node scripts/enrich_archanova_accounts.js"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
