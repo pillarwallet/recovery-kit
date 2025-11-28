@@ -3,6 +3,9 @@ import { useEffect, useState } from "react";
 // icons
 import { MdKeyboardArrowDown, MdKeyboardArrowUp } from "react-icons/md";
 
+// hooks
+import { useRecoveryKit } from "../hooks/useRecoveryKit";
+
 const initialChainMapping: Record<Network, string> = {
   polygon: "https://polygon-rpc.com",
   optimism: "https://optimism-rpc.publicnode.com",
@@ -13,6 +16,7 @@ const initialChainMapping: Record<Network, string> = {
 };
 
 const ChangeChainMapping = () => {
+  const { onboardingMethod } = useRecoveryKit();
   const [isOpen, setIsOpen] = useState(false);
   const loadChainMappingFromStorage = () => {
     const storedMapping = localStorage.getItem("chainMapping");
@@ -21,6 +25,11 @@ const ChangeChainMapping = () => {
   const [chainMapping, setChainMapping] = useState<Record<Network, string>>(
     loadChainMappingFromStorage
   );
+
+  // Hide the component if onboarding is via wallet connect
+  if (onboardingMethod === 'wallet-connect') {
+    return null;
+  }
 
   const handleRpcUrlChange = (chain: Network, newUrl: string) => {
     const updatedChainMapping = {
