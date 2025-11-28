@@ -26,10 +26,7 @@ const ChangeChainMapping = () => {
     loadChainMappingFromStorage
   );
 
-  // Hide the component if onboarding is via wallet connect
-  if (onboardingMethod === 'wallet-connect') {
-    return null;
-  }
+  const isWalletConnect = onboardingMethod === 'wallet-connect';
 
   const handleRpcUrlChange = (chain: Network, newUrl: string) => {
     const updatedChainMapping = {
@@ -61,9 +58,14 @@ const ChangeChainMapping = () => {
     >
       <button
         onClick={toggleArrow}
-        className={`flex items-center gap-2 hover:bg-[#3C3C53] border border-[#3C3C53] ${
+        disabled={isWalletConnect}
+        className={`flex items-center gap-2 border border-[#3C3C53] ${
           !isOpen && "px-6"
-        } py-2 rounded-xl text-white`}
+        } py-2 rounded-xl text-white ${
+          isWalletConnect 
+            ? "opacity-50 cursor-not-allowed" 
+            : "hover:bg-[#3C3C53]"
+        }`}
       >
         <p className="text-md text-left">Edit RPC providers</p>
         {isOpen ? (
