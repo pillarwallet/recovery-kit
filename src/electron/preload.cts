@@ -11,6 +11,10 @@ electron.contextBridge.exposeInMainWorld("electron", {
     ipcInvoke("getArchanovaAddress", [privateKey]),
   getArchanovaAccountId: (privateKey: string) =>
     ipcInvoke("getArchanovaAccountId", [privateKey]),
+  getArchanovaAddressFromEOA: (eoaAddress: string) =>
+    ipcInvoke("getArchanovaAddressFromEOA", [eoaAddress]),
+  getEtherspotAddressFromEOA: (eoaAddress: string) =>
+    ipcInvoke("getEtherspotAddressFromEOA", [eoaAddress]),
   submitMnemonic: (mnemonicWords: string[]) =>
     ipcInvoke("submitMnemonic", [mnemonicWords]),
   getPrivateKey: (mnemonicWords: string[]) =>

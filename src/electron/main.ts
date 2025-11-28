@@ -8,6 +8,8 @@ import {
   getAccountAddress,
   getArchanovaAddress,
   getArchanovaAccountId,
+  getArchanovaAddressFromEOA,
+  getEtherspotAddressFromEOA,
   getBalances,
   estimateArchanovaDeploymentCost,
   deployArchanovaContract,
@@ -95,6 +97,26 @@ app.on("ready", () => {
     try {
       const accountIdResult = await getArchanovaAccountId(privateKey);
       return accountIdResult;
+    } catch (error) {
+      return `Error, ${error}`;
+    }
+  });
+
+  // Handle getting the Archanova address from EOA address (for WalletConnect)
+  ipcMain.handle("getArchanovaAddressFromEOA", async (_, eoaAddress) => {
+    try {
+      const archanovaAddress = await getArchanovaAddressFromEOA(eoaAddress);
+      return archanovaAddress;
+    } catch (error) {
+      return `Error, ${error}`;
+    }
+  });
+
+  // Handle getting the Etherspot V1 address from EOA address (for WalletConnect)
+  ipcMain.handle("getEtherspotAddressFromEOA", async (_, eoaAddress) => {
+    try {
+      const etherspotAddress = await getEtherspotAddressFromEOA(eoaAddress);
+      return etherspotAddress;
     } catch (error) {
       return `Error, ${error}`;
     }

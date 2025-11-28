@@ -31,6 +31,8 @@ type EventPayloadMapping = {
   getAccountAddress: string;
   getArchanovaAddress: string;
   getArchanovaAccountId: string;
+  getArchanovaAddressFromEOA: string;
+  getEtherspotAddressFromEOA: string;
   submitMnemonic: string;
   getBalances: bigint[];
   getNftName: string | undefined;
@@ -56,6 +58,8 @@ interface Window {
     getAccountAddress: (privateKey: string) => Promise<string>;
     getArchanovaAddress: (privateKey: string) => Promise<string>;
     getArchanovaAccountId: (privateKey: string) => Promise<string>;
+    getArchanovaAddressFromEOA: (eoaAddress: string) => Promise<string>;
+    getEtherspotAddressFromEOA: (eoaAddress: string) => Promise<string>;
     submitMnemonic: (mnemonicWords: string[]) => Promise<string>;
     getPrivateKey: (mnemonicWords: string[]) => Promise<string>;
     getCode: (address: string, chain: string) => Promise<string>;
