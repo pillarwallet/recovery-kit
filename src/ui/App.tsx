@@ -11,7 +11,9 @@ import "./tailwind.css";
 import AssetsList from "./components/AssetsList";
 import AssetsPerFactory from "./components/AssetsPerFactory";
 import ChangeChainMapping from "./components/ChangeChainMapping";
+import ConnectWallet from "./components/ConnectWallet";
 import MnemonicInput from "./components/MnemonicInput";
+import OnboardingChoice from "./components/OnboardingChoice";
 import TransferToken from "./components/TransferToken";
 
 // hooks
@@ -19,13 +21,29 @@ import { useRecoveryKit } from "./hooks/useRecoveryKit";
 import { useArchanovaAddress } from "./hooks/useRecoveryKit";
 
 const App = () => {
-  const { step, setStep, accountAddress, EOAWalletAddress } = useRecoveryKit();
+  const { step, setStep, accountAddress, EOAWalletAddress, onboardingMethod } = useRecoveryKit();
   const archanovaAddress = useArchanovaAddress();
 
   const getAppScreen = (screen: number) => {
+    const disableSeedPhrase = import.meta.env.VITE_DISABLE_SEED_PHRASE_ONBOARDING === 'true';
+    
     switch (screen) {
       case 1:
-        return <MnemonicInput />;
+        // Show onboarding choice if no method selected, otherwise show the selected method
+        if (!onboardingMethod) {
+          return <OnboardingChoice />;
+        }
+        if (onboardingMethod === 'seed-phrase') {
+          // Don't show seed phrase input if it's disabled
+          if (disableSeedPhrase) {
+            return <OnboardingChoice />;
+          }
+          return <MnemonicInput />;
+        }
+        if (onboardingMethod === 'wallet-connect') {
+          return <ConnectWallet />;
+        }
+        return <OnboardingChoice />;
       case 2:
         return <>
           <AssetsPerFactory contractType="etherspot-v1" />
@@ -36,7 +54,7 @@ const App = () => {
       case 4:
         return <TransferToken />;
       default:
-        return <MnemonicInput />;
+        return <OnboardingChoice />;
     }
   };
 

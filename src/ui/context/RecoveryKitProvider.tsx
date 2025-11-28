@@ -19,6 +19,8 @@ interface RecoveryKitContextType {
   >;
   EOAWalletAddress: string | null;
   setEOAWalletAddress: React.Dispatch<React.SetStateAction<string | null>>;
+  onboardingMethod: 'seed-phrase' | 'wallet-connect' | null;
+  setOnboardingMethod: React.Dispatch<React.SetStateAction<'seed-phrase' | 'wallet-connect' | null>>;
 }
 
 export const RecoveryKitContext = createContext<
@@ -39,6 +41,7 @@ const RecoveryKitProvider = ({ children }: { children: ReactNode }) => {
     BalanceInfo | AddedAssets | undefined
   >();
   const [EOAWalletAddress, setEOAWalletAddress] = useState<string | null>(null);
+  const [onboardingMethod, setOnboardingMethod] = useState<'seed-phrase' | 'wallet-connect' | null>(null);
 
   return (
     <RecoveryKitContext.Provider
@@ -59,6 +62,8 @@ const RecoveryKitProvider = ({ children }: { children: ReactNode }) => {
         setSelectedAsset,
         EOAWalletAddress,
         setEOAWalletAddress,
+        onboardingMethod,
+        setOnboardingMethod,
       }}
     >
       {children}

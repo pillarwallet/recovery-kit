@@ -12,11 +12,30 @@ Currently, two official plugins are available:
 To launch the app locally, run the following command:
 
 1. `npm install`
-2. `npm run dev`
+2. Create a `.env` file in the root directory and add your WalletConnect Project ID:
+   ```
+   VITE_WALLETCONNECT_PROJECT_ID=your-project-id-here
+   ```
+   You can get a free Project ID from [WalletConnect Cloud](https://cloud.walletconnect.com)
+   
+   Optionally, you can disable seed phrase-based onboarding by adding:
+   ```
+   VITE_DISABLE_SEED_PHRASE_ONBOARDING=true
+   ```
+   When set to `true`, only WalletConnect onboarding will be available.
+3. `npm run dev`
 
 This will launch the electron app locally.
 
 Make sure you have an Etherspot V1 account.
+
+## WalletConnect Setup
+
+This app includes WalletConnect support using wagmi. To use WalletConnect:
+
+1. Register for a free WalletConnect Project ID at [WalletConnect Cloud](https://cloud.walletconnect.com)
+2. Add your Project ID to the `.env` file as `VITE_WALLETCONNECT_PROJECT_ID`
+3. The Connect Wallet button will appear at the top of the app, allowing users to connect their wallets via WalletConnect
 
 ## Expanding the ESLint configuration
 
