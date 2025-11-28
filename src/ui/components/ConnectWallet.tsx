@@ -1,5 +1,5 @@
 import { useAccount, useConnect, useDisconnect } from 'wagmi'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { FaWallet } from 'react-icons/fa'
 import type { Connector } from 'wagmi'
 import { useRecoveryKit } from '../hooks/useRecoveryKit'
@@ -8,22 +8,56 @@ const ConnectWallet = () => {
   const { address, isConnected } = useAccount()
   const { connect, connectors, isPending } = useConnect()
   const { disconnect } = useDisconnect()
-  const { onboardingMethod, setEOAWalletAddress, setStep, setOnboardingMethod } = useRecoveryKit()
+  const { 
+    onboardingMethod, 
+    setEOAWalletAddress, 
+    setStep, 
+    setOnboardingMethod,
+    setArchanovaAddress,
+    setAccountAddress
+  } = useRecoveryKit()
+  const [isLoadingAddresses, setIsLoadingAddresses] = useState(false)
 
   const walletConnectConnector = connectors.find(
     (connector: Connector) => connector.id === 'walletConnect'
   )
 
-  // When wallet connects via WalletConnect onboarding, set the address and proceed
+  // When wallet connects via WalletConnect onboarding, set the address and derive Archanova/Etherspot addresses
   useEffect(() => {
-    if (onboardingMethod === 'wallet-connect' && isConnected && address) {
-      setEOAWalletAddress(address)
-      // For WalletConnect, we use the connected address as the EOA
-      // Note: WalletConnect doesn't give us access to Etherspot V1 or Archanova accounts
-      // So we'll only show the EOA address
-      setStep(2)
+    const deriveAddresses = async () => {
+      if (onboardingMethod === 'wallet-connect' && isConnected && address) {
+        setIsLoadingAddresses(true)
+        setEOAWalletAddress(address)
+        
+        try {
+          // Derive Archanova address from EOA address
+          const archanova = await window.electron.getArchanovaAddressFromEOA(address)
+          if (archanova && !archanova.includes("Error") && archanova.includes("0x") && archanova !== 'no address found') {
+            setArchanovaAddress(archanova)
+          } else {
+            setArchanovaAddress(null)
+          }
+
+          // Derive Etherspot V1 address from EOA address
+          const etherspot = await window.electron.getEtherspotAddressFromEOA(address)
+          if (etherspot && !etherspot.includes("Error") && etherspot.includes("0x")) {
+            setAccountAddress(etherspot)
+          } else {
+            setAccountAddress(null)
+          }
+        } catch (error) {
+          console.error('Error deriving addresses:', error)
+          setArchanovaAddress(null)
+          setAccountAddress(null)
+        } finally {
+          setIsLoadingAddresses(false)
+          setStep(2)
+        }
+      }
     }
-  }, [onboardingMethod, isConnected, address, setEOAWalletAddress, setStep])
+
+    deriveAddresses()
+  }, [onboardingMethod, isConnected, address, setEOAWalletAddress, setStep, setArchanovaAddress, setAccountAddress])
 
   // Only show this component if wallet-connect onboarding method is selected
   if (onboardingMethod !== 'wallet-connect') {
@@ -47,16 +81,22 @@ const ConnectWallet = () => {
         <div className="flex items-center gap-3 p-4 bg-green-100 border border-green-400 rounded-lg">
           <FaWallet className="text-green-700" />
           <div className="flex-1">
-            <p className="text-sm font-semibold text-green-800">Wallet Connected</p>
+            <p className="text-sm font-semibold text-green-800">
+              {isLoadingAddresses ? 'Deriving addresses...' : 'Wallet Connected'}
+            </p>
             <p className="text-xs text-green-700 font-mono truncate">{address}</p>
           </div>
           <button
             onClick={() => {
               disconnect()
               setOnboardingMethod(null)
+              setEOAWalletAddress(null)
+              setArchanovaAddress(null)
+              setAccountAddress(null)
               setStep(1)
             }}
             className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors"
+            disabled={isLoadingAddresses}
           >
             Disconnect
           </button>

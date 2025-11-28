@@ -22,7 +22,7 @@ import { useArchanovaAddress } from "./hooks/useRecoveryKit";
 import { useAccount, useDisconnect } from "wagmi";
 
 const App = () => {
-  const { step, setStep, accountAddress, EOAWalletAddress, onboardingMethod, setOnboardingMethod, setEOAWalletAddress } = useRecoveryKit();
+  const { step, setStep, accountAddress, EOAWalletAddress, onboardingMethod, setOnboardingMethod, setEOAWalletAddress, setArchanovaAddress, setAccountAddress } = useRecoveryKit();
   const archanovaAddress = useArchanovaAddress();
   const { isConnected } = useAccount();
   const { disconnect } = useDisconnect();
@@ -104,6 +104,8 @@ const App = () => {
                   }
                   setOnboardingMethod(null);
                   setEOAWalletAddress(null);
+                  setArchanovaAddress(null);
+                  setAccountAddress(null);
                   setStep(1);
                 }}
                 className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors"

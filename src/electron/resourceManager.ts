@@ -169,6 +169,71 @@ export const getArchanovaAccountId = async (
   }
 };
 
+// Get Archanova address from EOA address (for WalletConnect)
+export const getArchanovaAddressFromEOA = async (
+  eoaAddress: string
+): Promise<string> => {
+  try {
+    // Load the mapped archanova accounts data
+    const mappedAccountsPath = path.join(app.getAppPath(), 'dist-electron', 'src', 'electron', 'data', 'mapped_archanova_accounts.json');
+    const mappedAccountsData = await fs.readFile(mappedAccountsPath, 'utf8');
+    const mappedAccounts = JSON.parse(mappedAccountsData);
+
+    // Search for the matching eoaAddress
+    const matchingAccount = mappedAccounts.find((account: { eoaAddress: string; archanovaAddress: string }) => 
+      account.eoaAddress.toLowerCase() === eoaAddress.toLowerCase()
+    );
+
+    if (matchingAccount) {
+      return matchingAccount.archanovaAddress;
+    } else {
+      return 'no address found';
+    }
+  } catch (error) {
+    return `Error getting archanova address: ${error}`;
+  }
+};
+
+// Get Etherspot V1 address from EOA address (for WalletConnect)
+export const getEtherspotAddressFromEOA = async (
+  eoaAddress: string
+): Promise<string> => {
+  try {
+    // mainnet by default to get the account address
+    const chainUrl = chainMapping.ethereum;
+
+    if (!chainUrl) {
+      throw new Error(`Unsupported chain: ${chainUrl}`);
+    }
+
+    const personalRegistryAbi = await import(
+      "./contracts/artifacts-etherspot-v1/PersonalAccountRegistry.json",
+      {
+        with: { type: "json" },
+      }
+    );
+
+    const provider = createPublicClient({
+      chain: getNetworkViem("ethereum"),
+      transport: http(chainUrl),
+    });
+
+    const accountContract = getContract({
+      address: ETHERSPOT_V1_PERSONAL_ACCOUNT_REGISTRY_ADDRESS as `0x${string}`,
+      abi: personalRegistryAbi.default.abi,
+      client: provider,
+    });
+
+    const accountAddress = await accountContract.read.computeAccountAddress([
+      eoaAddress as `0x${string}`,
+    ]);
+
+    return accountAddress as string;
+  } catch (error) {
+    return `Error to get the account address:, ${error}`;
+  }
+};
+
 // Using the ethers librairy because it allows to get the private key from the mnemonic wallet
 // while Viem librairy does not provide the private key from the mnemonic wallet
 export const submitMnemonic = async (
