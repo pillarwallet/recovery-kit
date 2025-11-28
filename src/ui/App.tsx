@@ -11,21 +11,42 @@ import "./tailwind.css";
 import AssetsList from "./components/AssetsList";
 import AssetsPerFactory from "./components/AssetsPerFactory";
 import ChangeChainMapping from "./components/ChangeChainMapping";
+import ConnectWallet from "./components/ConnectWallet";
 import MnemonicInput from "./components/MnemonicInput";
+import OnboardingChoice from "./components/OnboardingChoice";
 import TransferToken from "./components/TransferToken";
 
 // hooks
 import { useRecoveryKit } from "./hooks/useRecoveryKit";
 import { useArchanovaAddress } from "./hooks/useRecoveryKit";
+import { useAccount, useDisconnect } from "wagmi";
 
 const App = () => {
-  const { step, setStep, accountAddress, EOAWalletAddress } = useRecoveryKit();
+  const { step, setStep, accountAddress, EOAWalletAddress, onboardingMethod, setOnboardingMethod, setEOAWalletAddress } = useRecoveryKit();
   const archanovaAddress = useArchanovaAddress();
+  const { isConnected } = useAccount();
+  const { disconnect } = useDisconnect();
 
   const getAppScreen = (screen: number) => {
+    const disableSeedPhrase = import.meta.env.VITE_DISABLE_SEED_PHRASE_ONBOARDING === 'true';
+    
     switch (screen) {
       case 1:
-        return <MnemonicInput />;
+        // Show onboarding choice if no method selected, otherwise show the selected method
+        if (!onboardingMethod) {
+          return <OnboardingChoice />;
+        }
+        if (onboardingMethod === 'seed-phrase') {
+          // Don't show seed phrase input if it's disabled
+          if (disableSeedPhrase) {
+            return <OnboardingChoice />;
+          }
+          return <MnemonicInput />;
+        }
+        if (onboardingMethod === 'wallet-connect') {
+          return <ConnectWallet />;
+        }
+        return <OnboardingChoice />;
       case 2:
         return <>
           <AssetsPerFactory contractType="etherspot-v1" />
@@ -36,7 +57,7 @@ const App = () => {
       case 4:
         return <TransferToken />;
       default:
-        return <MnemonicInput />;
+        return <OnboardingChoice />;
     }
   };
 
@@ -70,6 +91,27 @@ const App = () => {
 
       {step > 1 && (
         <>
+          {onboardingMethod === 'wallet-connect' && isConnected && (
+            <div className="flex items-center gap-3 w-full mb-2">
+              <div className="flex-1 flex items-center gap-2 px-4 py-2 bg-green-100 border border-green-400 rounded-lg">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <p className="text-sm text-green-800">Wallet Connected</p>
+              </div>
+              <button
+                onClick={() => {
+                  if (isConnected) {
+                    disconnect();
+                  }
+                  setOnboardingMethod(null);
+                  setEOAWalletAddress(null);
+                  setStep(1);
+                }}
+                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors"
+              >
+                Disconnect Wallet
+              </button>
+            </div>
+          )}
           {EOAWalletAddress && (
             <p className="truncate w-full text-md text-left mb-[-10px]">
               Your <span className="font-bold">EOA Wallet </span>address:{" "}

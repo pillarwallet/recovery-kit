@@ -16,6 +16,7 @@ const MnemonicInput = () => {
     setSeedPhrase,
     setEOAWalletAddress,
     setArchanovaAddress,
+    setOnboardingMethod,
   } = useRecoveryKit();
   const [activeTab, setActiveTab] = useState<"phrase" | "pk">("phrase");
   const [privateKey, setPrivateKey] = useState<string>("");
@@ -94,6 +95,12 @@ const MnemonicInput = () => {
 
   return (
     <div className="flex flex-col w-full">
+      <button
+        onClick={() => setOnboardingMethod(null)}
+        className="self-start mb-4 text-sm text-gray-400 hover:text-white transition-colors"
+      >
+        ← Choose different method
+      </button>
       <div className="flex mb-4 w-full">
         <button
           className={`px-4 py-2 w-full ${

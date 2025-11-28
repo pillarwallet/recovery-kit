@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { RiExternalLinkLine } from "react-icons/ri";
 import { isAddress } from "viem";
+import { useWalletClient, usePublicClient } from "wagmi";
 
 // hooks
 import { useRecoveryKit } from "../hooks/useRecoveryKit";
 
 // utils
 import { getBlockScan, getNativeTokenSymbol, getAddressForContractType, getContractDisplayName } from "../utils/index";
+import { getChainFromName } from "../utils/transactions";
 
 const TransferToken = () => {
   const { 
@@ -15,8 +17,12 @@ const TransferToken = () => {
     seedPhrase, 
     EOAWalletAddress,
     contract,
-    archanovaAddress 
+    archanovaAddress,
+    onboardingMethod
   } = useRecoveryKit();
+  
+  const { data: walletClient } = useWalletClient();
+  const publicClient = usePublicClient();
   
   // Get the appropriate address based on contract type
   const selectedAddress = getAddressForContractType(contract || "etherspot-v1", {
@@ -43,8 +49,8 @@ const TransferToken = () => {
           // If getCode returns "0x" or empty string, no contract is deployed
           const isDeployed = Boolean(code && code !== "0x" && !code.startsWith("Error"));
           setIsContractDeployed(isDeployed);
-          if (!isDeployed) {
-            // auto-estimate deployment cost
+          if (!isDeployed && onboardingMethod === 'seed-phrase') {
+            // auto-estimate deployment cost (only for seed phrase onboarding)
             const privateKey = await window.electron.getPrivateKey(seedPhrase);
             const cost = await window.electron.estimateArchanovaDeploymentCost(
               selectedAsset.chain as string,
@@ -70,7 +76,7 @@ const TransferToken = () => {
     };
 
     checkContractDeployment();
-  }, [contract, selectedAddress, selectedAsset?.chain, seedPhrase, archanovaAddress]);
+  }, [contract, selectedAddress, selectedAsset?.chain, seedPhrase, archanovaAddress, onboardingMethod]);
 
   const estimateGas = async (
     accountAddress: string,
@@ -79,6 +85,11 @@ const TransferToken = () => {
     amount: string,
     chain: string
   ): Promise<string> => {
+    // For WalletConnect onboarding, smart contract account transactions require seed phrase
+    if (onboardingMethod === 'wallet-connect' && (contract === 'etherspot-v1' || contract === 'archanova')) {
+      return "0"; // Cannot estimate without seed phrase for smart contract accounts
+    }
+    
     const privateKey = await window.electron.getPrivateKey(seedPhrase);
     const estimatedGas = await window.electron.estimateGas(
       accountAddress,
@@ -155,6 +166,15 @@ const TransferToken = () => {
         : selectedAsset?.balance;
 
     try {
+      // For WalletConnect onboarding with smart contract accounts, require seed phrase
+      if (onboardingMethod === 'wallet-connect' && (contract === 'etherspot-v1' || contract === 'archanova')) {
+        if (!seedPhrase || seedPhrase.every(word => word === '')) {
+          setTransferStatus("Smart contract account transactions require your seed phrase. Please enter your 12-word seed phrase to continue.");
+          return;
+        }
+      }
+
+      // Use private key for transactions (from seed phrase)
       const privateKey = await window.electron.getPrivateKey(seedPhrase);
 
       if (
@@ -269,11 +289,26 @@ const TransferToken = () => {
     );
   }
 
+  // Show warning for WalletConnect users trying to use smart contract accounts without seed phrase
+  const needsSeedPhrase = onboardingMethod === 'wallet-connect' && 
+    (contract === 'etherspot-v1' || contract === 'archanova') && 
+    (!seedPhrase || seedPhrase.every(word => word === ''));
+
   return (
     <div className="flex flex-col gap-4 w-full">
       <p className="text-lg text-left">
         {getContractDisplayName(contract || "etherspot-v1")}
       </p>
+      {needsSeedPhrase && (
+        <div className="flex gap-3 items-start p-4 bg-blue-100 border-l-4 border-blue-400 rounded-r-lg">
+          <div className="flex-1">
+            <p className="text-sm text-left text-blue-700">
+              Smart contract account transactions require your seed phrase to derive the account address and sign transactions. 
+              Please go back and enter your 12-word seed phrase to continue.
+            </p>
+          </div>
+        </div>
+      )}
       <p className="text-lg text-left">
         You are transferring {selectedAsset?.balance || 0}{" "}
         {selectedAsset && "name" in selectedAsset

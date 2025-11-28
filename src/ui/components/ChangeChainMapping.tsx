@@ -3,6 +3,9 @@ import { useEffect, useState } from "react";
 // icons
 import { MdKeyboardArrowDown, MdKeyboardArrowUp } from "react-icons/md";
 
+// hooks
+import { useRecoveryKit } from "../hooks/useRecoveryKit";
+
 const initialChainMapping: Record<Network, string> = {
   polygon: "https://polygon-rpc.com",
   optimism: "https://optimism-rpc.publicnode.com",
@@ -13,6 +16,7 @@ const initialChainMapping: Record<Network, string> = {
 };
 
 const ChangeChainMapping = () => {
+  const { onboardingMethod } = useRecoveryKit();
   const [isOpen, setIsOpen] = useState(false);
   const loadChainMappingFromStorage = () => {
     const storedMapping = localStorage.getItem("chainMapping");
@@ -21,6 +25,8 @@ const ChangeChainMapping = () => {
   const [chainMapping, setChainMapping] = useState<Record<Network, string>>(
     loadChainMappingFromStorage
   );
+
+  const isWalletConnect = onboardingMethod === 'wallet-connect';
 
   const handleRpcUrlChange = (chain: Network, newUrl: string) => {
     const updatedChainMapping = {
@@ -52,9 +58,14 @@ const ChangeChainMapping = () => {
     >
       <button
         onClick={toggleArrow}
-        className={`flex items-center gap-2 hover:bg-[#3C3C53] border border-[#3C3C53] ${
+        disabled={isWalletConnect}
+        className={`flex items-center gap-2 border border-[#3C3C53] ${
           !isOpen && "px-6"
-        } py-2 rounded-xl text-white`}
+        } py-2 rounded-xl text-white ${
+          isWalletConnect 
+            ? "opacity-50 cursor-not-allowed" 
+            : "hover:bg-[#3C3C53]"
+        }`}
       >
         <p className="text-md text-left">Edit RPC providers</p>
         {isOpen ? (
