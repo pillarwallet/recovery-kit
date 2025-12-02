@@ -1,11 +1,6 @@
 const { FusesPlugin } = require("@electron-forge/plugin-fuses");
 const { FuseV1Options, FuseVersion } = require("@electron/fuses");
 
-/**
- * Electron Forge configuration for Pillar Recovery Kit
- * Configures packaging, makers for different platforms, and security fuses
- * to ensure the application is properly bundled and secured.
- */
 module.exports = {
   packagerConfig: {
     asar: true,
