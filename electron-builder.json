@@ -1,10 +1,13 @@
 {
   "appId": "com.pillar-wallet.recovery-kit",
+  "afterSign": "scripts/after-sign-mac.cjs",
   "files": ["dist-electron", "dist-react"],
   "extraResources": ["dist-electron/preload.cjs"],
   "icon": "./desktopIcon.png",
   "mac": {
-    "target": "dmg"
+    "target": "dmg",
+    "hardenedRuntime": true,
+    "gatekeeperAssess": false
   },
   "linux": {
     "target": "AppImage",
