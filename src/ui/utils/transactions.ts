@@ -1,4 +1,4 @@
-import { mainnet, polygon, optimism, arbitrum, bsc, gnosis } from 'wagmi/chains'
+import { mainnet, polygon, optimism, arbitrum, bsc, gnosis, base } from 'wagmi/chains'
 import type { Chain } from 'wagmi/chains'
 
 export const getChainFromName = (chainName: string): Chain => {
@@ -15,6 +15,8 @@ export const getChainFromName = (chainName: string): Chain => {
       return bsc
     case 'xdai':
       return gnosis
+    case 'base':
+      return base
     default:
       return mainnet
   }

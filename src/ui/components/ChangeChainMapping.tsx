@@ -7,20 +7,30 @@ import { MdKeyboardArrowDown, MdKeyboardArrowUp } from "react-icons/md";
 import { useRecoveryKit } from "../hooks/useRecoveryKit";
 
 const initialChainMapping: Record<Network, string> = {
-  polygon: "https://polygon-rpc.com",
+  polygon: "https://polygon-bor-rpc.publicnode.com",
   optimism: "https://optimism-rpc.publicnode.com",
   arbitrum: "https://arb1.arbitrum.io/rpc",
   binance: "https://bsc-dataseed1.binance.org",
   ethereum: "https://ethereum-rpc.publicnode.com",
   xdai: "https://rpc.gnosischain.com",
+  base: "https://mainnet.base.org",
 };
+
+const RETIRED_POLYGON_RPC = "https://polygon-rpc.com";
 
 const ChangeChainMapping = () => {
   const { onboardingMethod } = useRecoveryKit();
   const [isOpen, setIsOpen] = useState(false);
   const loadChainMappingFromStorage = () => {
     const storedMapping = localStorage.getItem("chainMapping");
-    return storedMapping ? JSON.parse(storedMapping) : initialChainMapping;
+    if (!storedMapping) return initialChainMapping;
+
+    const mapping = { ...initialChainMapping, ...JSON.parse(storedMapping) };
+    // The previous default no longer works: do not keep it from stored settings
+    if (mapping.polygon === RETIRED_POLYGON_RPC) {
+      mapping.polygon = initialChainMapping.polygon;
+    }
+    return mapping;
   };
   const [chainMapping, setChainMapping] = useState<Record<Network, string>>(
     loadChainMappingFromStorage

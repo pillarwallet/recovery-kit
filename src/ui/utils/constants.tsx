@@ -5,6 +5,7 @@ export const CHAIN = {
   XDAI: "xdai",
   OPTIMISM: "optimism",
   ARBITRUM: "arbitrum",
+  BASE: "base",
 };
 
 export const NATIVE_TOKENS: Record<ChainType, string> = {
@@ -14,4 +15,5 @@ export const NATIVE_TOKENS: Record<ChainType, string> = {
   xdai: "XDAI",
   optimism: "ETH",
   arbitrum: "ETH",
+  base: "ETH",
 };

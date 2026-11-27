@@ -1,6 +1,20 @@
 # Recovery Kit
 Recovery Kit is a small tool that allows you to transfer assets contained within, now decommissioned, services from Pillar and Etherspot.
 
+## Supported accounts
+| Account | Chains |
+| --- | --- |
+| Etherspot V1 | Ethereum, Polygon, Optimism, Arbitrum, BNB Chain, Gnosis |
+| Archanova | Ethereum |
+| PillarX | Ethereum, Polygon, Optimism, Arbitrum, BNB Chain, Gnosis, Base |
+
+### PillarX
+PillarX accounts are Etherspot Modular accounts owned by the wallet you signed in to PillarX with. Enter that wallet's private key (or 12-word seed phrase) and Recovery Kit shows the PillarX account address and its assets.
+
+- If you signed in to PillarX with email or a social login, export your private key from PillarX before it shuts down.
+- Transfers are sent straight to the ERC-4337 EntryPoint by your EOA Wallet, without a bundler or paymaster, so your EOA Wallet needs enough of the chain's native token to pay for gas. An account that was never deployed on a chain is deployed as part of its first transfer.
+- If PillarX showed your wallet's own address as your account (EIP-7702 mode), your assets are held by the wallet itself: import the private key into any wallet app to access them.
+
 ## Download
 Head over to https://github.com/pillarwallet/recovery-kit/releases and download the latest version for your device.
 

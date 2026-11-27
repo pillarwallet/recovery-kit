@@ -41,6 +41,14 @@
       "logoURI": "https://raw.githubusercontent.com/bnb-chain/tokens-info-v2/master/tokens/usdc/USDC-CD2.png"
     },
     {
+      "address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      "chainId": 137,
+      "decimals": "6",
+      "name": "USDC (native)",
+      "symbol": "USDC",
+      "logoURI": "https://raw.githubusercontent.com/bnb-chain/tokens-info-v2/master/tokens/usdc/USDC-CD2.png"
+    },
+    {
       "address": "0xdab529f40e671a1d4bf91361c21bf9f0c9712ab7",
       "chainId": 137,
       "decimals": "18",

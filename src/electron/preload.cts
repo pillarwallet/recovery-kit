@@ -15,6 +15,8 @@ electron.contextBridge.exposeInMainWorld("electron", {
     ipcInvoke("getArchanovaAddressFromEOA", [eoaAddress]),
   getEtherspotAddressFromEOA: (eoaAddress: string) =>
     ipcInvoke("getEtherspotAddressFromEOA", [eoaAddress]),
+  getPillarXAddressFromEOA: (eoaAddress: string) =>
+    ipcInvoke("getPillarXAddressFromEOA", [eoaAddress]),
   submitMnemonic: (mnemonicWords: string[]) =>
     ipcInvoke("submitMnemonic", [mnemonicWords]),
   getPrivateKey: (mnemonicWords: string[]) =>

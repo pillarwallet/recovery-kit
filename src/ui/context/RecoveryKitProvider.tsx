@@ -5,8 +5,12 @@ interface RecoveryKitContextType {
   setAccountAddress: React.Dispatch<React.SetStateAction<string | null>>;
   archanovaAddress: string | null;
   setArchanovaAddress: React.Dispatch<React.SetStateAction<string | null>>;
+  pillarXAddress: string | null;
+  setPillarXAddress: React.Dispatch<React.SetStateAction<string | null>>;
   seedPhrase: string[];
   setSeedPhrase: React.Dispatch<React.SetStateAction<string[]>>;
+  privateKey: string | null;
+  setPrivateKey: React.Dispatch<React.SetStateAction<string | null>>;
   step: number;
   setStep: React.Dispatch<React.SetStateAction<number>>;
   balances: Record<ContractsType, BalancesByChain>;
@@ -30,10 +34,13 @@ export const RecoveryKitContext = createContext<
 const RecoveryKitProvider = ({ children }: { children: ReactNode }) => {
   const [accountAddress, setAccountAddress] = useState<string | null>(null);
   const [archanovaAddress, setArchanovaAddress] = useState<string | null>(null);
+  const [pillarXAddress, setPillarXAddress] = useState<string | null>(null);
   const [seedPhrase, setSeedPhrase] = useState<string[]>(Array(12).fill(""));
+  const [privateKey, setPrivateKey] = useState<string | null>(null);
   const [balances, setBalances] = useState<Record<ContractsType, BalancesByChain>>({
     "etherspot-v1": {},
     "archanova": {},
+    "pillarx": {},
   });
   const [step, setStep] = useState<number>(1);
   const [contract, setContract] = useState<ContractsType>();
@@ -50,8 +57,12 @@ const RecoveryKitProvider = ({ children }: { children: ReactNode }) => {
         setAccountAddress,
         archanovaAddress,
         setArchanovaAddress,
+        pillarXAddress,
+        setPillarXAddress,
         seedPhrase,
         setSeedPhrase,
+        privateKey,
+        setPrivateKey,
         step,
         setStep,
         balances,

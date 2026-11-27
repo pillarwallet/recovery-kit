@@ -12,7 +12,15 @@ import {
 } from "viem";
 import type { Abi, EstimateGasErrorType } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { arbitrum, bsc, gnosis, mainnet, optimism, polygon } from "viem/chains";
+import {
+  arbitrum,
+  base,
+  bsc,
+  gnosis,
+  mainnet,
+  optimism,
+  polygon,
+} from "viem/chains";
 import { chainMapping } from "./main.js";
 import { promises as fs } from "fs";
 import * as path from "path";
@@ -25,6 +33,11 @@ import {
   ETHERSPOT_V1_PERSONAL_ACCOUNT_REGISTRY_ADDRESS,
   processBigNumber,
 } from "./utils.js";
+import {
+  estimatePillarXCall,
+  executePillarXCall,
+  getPillarXAccountAddress,
+} from "./pillarx.js";
 
 const getNetworkViem = (network: Network): Chain => {
   switch (network) {
@@ -40,6 +53,8 @@ const getNetworkViem = (network: Network): Chain => {
       return gnosis;
     case "binance":
       return bsc;
+    case "base":
+      return base;
     default:
       return mainnet;
   }
@@ -231,6 +246,32 @@ export const getEtherspotAddressFromEOA = async (
     return accountAddress as string;
   } catch (error) {
     return `Error to get the account address:, ${error}`;
+  }
+};
+
+// Get PillarX address from EOA address
+export const getPillarXAddressFromEOA = async (
+  eoaAddress: string
+): Promise<string> => {
+  try {
+    // mainnet by default to get the account address: it is the same on every chain
+    const chainUrl = chainMapping.ethereum;
+
+    if (!chainUrl) {
+      throw new Error(`Unsupported chain: ${chainUrl}`);
+    }
+
+    const provider = createPublicClient({
+      chain: getNetworkViem("ethereum"),
+      transport: http(chainUrl),
+    });
+
+    return await getPillarXAccountAddress(
+      provider,
+      eoaAddress as `0x${string}`
+    );
+  } catch (error) {
+    return `Error to get the PillarX account address:, ${error}`;
   }
 };
 
@@ -655,6 +696,23 @@ export const estimateGas = async (
      */
     if (tokenAddress === ethers.constants.AddressZero) {
       /**
+       * ... for PillarX account
+       */
+      if (contractType === "pillarx") {
+        const totalCostInWei = await estimatePillarXCall(
+          client,
+          wallet,
+          accountAddress as `0x${string}`,
+          {
+            to: recipientAddress as `0x${string}`,
+            value: amountInUnits,
+            data: "0x",
+          }
+        );
+        return formatEther(totalCostInWei);
+      }
+
+      /**
        * ... for Archanova account
        */
       if (contractType === "archanova") {
@@ -696,6 +754,19 @@ export const estimateGas = async (
         functionName: "transfer",
         args: [recipientAddress, amountInUnits],
       });
+
+      /**
+       * ... for PillarX account
+       */
+      if (contractType === "pillarx") {
+        const totalCostInWei = await estimatePillarXCall(
+          client,
+          wallet,
+          accountAddress as `0x${string}`,
+          { to: tokenAddress as `0x${string}`, value: 0n, data: calldata }
+        );
+        return formatEther(totalCostInWei);
+      }
 
       /**
        * ... for Archanova account
@@ -836,6 +907,22 @@ export const transferTokens = async (
      */
     if (tokenAddress === ethers.constants.AddressZero) {
       /**
+       * ... for PillarX account
+       */
+      if (contractType === "pillarx") {
+        return await executePillarXCall(
+          client,
+          wallet,
+          accountAddress as `0x${string}`,
+          {
+            to: recipientAddress as `0x${string}`,
+            value: amountInUnits,
+            data: "0x",
+          }
+        );
+      }
+
+      /**
        * ... for Archanova account
        */
       if (contractType === "archanova") {
@@ -871,6 +958,26 @@ export const transferTokens = async (
       /**
        * ... for ERC20 token
        */
+      /**
+       * ... for PillarX account
+       */
+      if (contractType === "pillarx") {
+        return await executePillarXCall(
+          client,
+          wallet,
+          accountAddress as `0x${string}`,
+          {
+            to: tokenAddress as `0x${string}`,
+            value: 0n,
+            data: encodeFunctionData({
+              abi: erc20Abi.default.abi,
+              functionName: "transfer",
+              args: [recipientAddress, amountInUnits],
+            }),
+          }
+        );
+      }
+
       /**
        * ... for Archanova account
        */
@@ -1206,6 +1313,15 @@ export const transferNft = async (
 
     // Try ERC721 transfer
     try {
+      if (contractType === "pillarx") {
+        return await executePillarXCall(
+          client,
+          wallet,
+          accountAddress as `0x${string}`,
+          { to: nftAddress as `0x${string}`, value: 0n, data: calldataERC721 }
+        );
+      }
+
       if (contractType === "archanova") {
         const tx = await archanovaAccount.write.executeTransaction([
           nftAddress,
@@ -1233,6 +1349,19 @@ export const transferNft = async (
 
       // Fallback to ERC1155 transfer
       try {
+        if (contractType === "pillarx") {
+          return await executePillarXCall(
+            client,
+            wallet,
+            accountAddress as `0x${string}`,
+            {
+              to: nftAddress as `0x${string}`,
+              value: 0n,
+              data: calldataERC1155,
+            }
+          );
+        }
+
         if (contractType === "archanova") {
           const tx = await archanovaAccount.write.executeTransaction([
             nftAddress,

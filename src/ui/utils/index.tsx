@@ -19,6 +19,8 @@ export const getBlockScan = (chain: ChainType) => {
       return "https://optimistic.etherscan.io/tx/";
     case "arbitrum":
       return "https://arbiscan.io/tx/";
+    case "base":
+      return "https://basescan.org/tx/";
     default:
       return "";
   }
@@ -34,6 +36,7 @@ export const allNativeTokens: Record<
   arbitrum: { name: "Ether", symbol: "ETH" },
   xdai: { name: "xDai", symbol: "XDAI" },
   binance: { name: "Binance Coin", symbol: "BNB" },
+  base: { name: "Ether", symbol: "ETH" },
 };
 
 /**
@@ -45,6 +48,7 @@ export const getAddressForContractType = (
   addresses: {
     accountAddress: string | null;
     archanovaAddress: string | null;
+    pillarXAddress: string | null;
     EOAWalletAddress: string | null;
   }
 ): string | null => {
@@ -53,6 +57,8 @@ export const getAddressForContractType = (
       return addresses.accountAddress;
     case "archanova":
       return addresses.archanovaAddress;
+    case "pillarx":
+      return addresses.pillarXAddress;
     default:
       // Fallback to account address for unknown contract types
       console.warn(`Unknown contract type: ${contractType}, falling back to account address`);
@@ -69,6 +75,8 @@ export const getContractDisplayName = (contractType: ContractsType): string => {
       return "Etherspot V1";
     case "archanova":
       return "Archanova";
+    case "pillarx":
+      return "PillarX";
     default:
       return "Unknown Contract";
   }

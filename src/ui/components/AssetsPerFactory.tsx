@@ -6,10 +6,15 @@ import { formatUnits } from "viem";
 import { useRecoveryKit } from "../hooks/useRecoveryKit";
 
 // utils
-import { allNativeTokens, getAddressForContractType } from "../utils";
+import {
+  allNativeTokens,
+  getAddressForContractType,
+  getContractDisplayName,
+} from "../utils";
 
 // components
 import ArbitrumList from "../utils/tokens/arbitrum-tokens.json";
+import BaseList from "../utils/tokens/base-tokens.json";
 import BinanceList from "../utils/tokens/binance-tokens.json";
 import EthereumList from "../utils/tokens/ethereum-tokens.json";
 import GnosisList from "../utils/tokens/gnosis-tokens.json";
@@ -27,7 +32,7 @@ const tokenLists = {
 };
 
 type AssetsPerFactoryType = {
-  contractType: "etherspot-v1" | "archanova";
+  contractType: ContractsType;
 };
 
 const AssetsPerFactory = ({ contractType }: AssetsPerFactoryType) => {
@@ -38,6 +43,7 @@ const AssetsPerFactory = ({ contractType }: AssetsPerFactoryType) => {
     setContract, 
     accountAddress,
     archanovaAddress,
+    pillarXAddress,
     EOAWalletAddress 
   } = useRecoveryKit();
   
@@ -45,6 +51,7 @@ const AssetsPerFactory = ({ contractType }: AssetsPerFactoryType) => {
   const selectedAddress = getAddressForContractType(contractType, {
     accountAddress,
     archanovaAddress,
+    pillarXAddress,
     EOAWalletAddress,
   });
   const [error, setError] = useState<string>("");
@@ -211,9 +218,13 @@ const AssetsPerFactory = ({ contractType }: AssetsPerFactoryType) => {
     setIsLoading(true);
 
     // For Archanova, only fetch ethereum mainnet balances
-    const chainsToFetch = contractType === "archanova" 
-      ? { ethereum: tokenLists.ethereum }
-      : tokenLists;
+    // Base is only supported by PillarX accounts
+    const chainsToFetch =
+      contractType === "archanova"
+        ? { ethereum: tokenLists.ethereum }
+        : contractType === "pillarx"
+          ? { ...tokenLists, base: BaseList }
+          : tokenLists;
 
     for (const [chain, tokenList] of Object.entries(chainsToFetch)) {
       const balancesForChain = await getAllBalances(
@@ -267,7 +278,7 @@ const AssetsPerFactory = ({ contractType }: AssetsPerFactoryType) => {
       }
     >
       <p className="text-lg text-left capitalize">
-        {contractType === "etherspot-v1" ? "Etherspot V1" : contractType}
+        {getContractDisplayName(contractType)}
       </p>
       {isLoading ? (
         <div className="flex gap-4">

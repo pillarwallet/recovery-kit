@@ -5,9 +5,10 @@ type ChainType =
   | "binance"
   | "xdai"
   | "optimism"
-  | "arbitrum";
+  | "arbitrum"
+  | "base";
 
-type ContractsType = "etherspot-v1" | "archanova";
+type ContractsType = "etherspot-v1" | "archanova" | "pillarx";
 
 type Statistics = {
   cpuUsage: number;
@@ -33,6 +34,7 @@ type EventPayloadMapping = {
   getArchanovaAccountId: string;
   getArchanovaAddressFromEOA: string;
   getEtherspotAddressFromEOA: string;
+  getPillarXAddressFromEOA: string;
   submitMnemonic: string;
   getBalances: bigint[];
   getNftName: string | undefined;
@@ -60,6 +62,7 @@ interface Window {
     getArchanovaAccountId: (privateKey: string) => Promise<string>;
     getArchanovaAddressFromEOA: (eoaAddress: string) => Promise<string>;
     getEtherspotAddressFromEOA: (eoaAddress: string) => Promise<string>;
+    getPillarXAddressFromEOA: (eoaAddress: string) => Promise<string>;
     submitMnemonic: (mnemonicWords: string[]) => Promise<string>;
     getPrivateKey: (mnemonicWords: string[]) => Promise<string>;
     getCode: (address: string, chain: string) => Promise<string>;
@@ -131,7 +134,8 @@ type Network =
   | "optimism"
   | "arbitrum"
   | "xdai"
-  | "binance";
+  | "binance"
+  | "base";
 
 type TokenList = {
   address: string;
