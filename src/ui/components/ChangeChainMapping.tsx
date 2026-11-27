@@ -13,6 +13,7 @@ const initialChainMapping: Record<Network, string> = {
   binance: "https://bsc-dataseed1.binance.org",
   ethereum: "https://ethereum-rpc.publicnode.com",
   xdai: "https://rpc.gnosischain.com",
+  base: "https://mainnet.base.org",
 };
 
 const ChangeChainMapping = () => {
@@ -20,7 +21,9 @@ const ChangeChainMapping = () => {
   const [isOpen, setIsOpen] = useState(false);
   const loadChainMappingFromStorage = () => {
     const storedMapping = localStorage.getItem("chainMapping");
-    return storedMapping ? JSON.parse(storedMapping) : initialChainMapping;
+    return storedMapping
+      ? { ...initialChainMapping, ...JSON.parse(storedMapping) }
+      : initialChainMapping;
   };
   const [chainMapping, setChainMapping] = useState<Record<Network, string>>(
     loadChainMappingFromStorage

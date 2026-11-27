@@ -1,5 +1,5 @@
 import { createConfig, http } from 'wagmi'
-import { mainnet, polygon, optimism, arbitrum, bsc, gnosis } from 'wagmi/chains'
+import { mainnet, polygon, optimism, arbitrum, bsc, gnosis, base } from 'wagmi/chains'
 import { walletConnect } from '@wagmi/connectors'
 
 // Get WalletConnect project ID from environment or use a default
@@ -7,7 +7,7 @@ import { walletConnect } from '@wagmi/connectors'
 const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || 'default-project-id'
 
 export const config = createConfig({
-  chains: [mainnet, polygon, optimism, arbitrum, bsc, gnosis],
+  chains: [mainnet, polygon, optimism, arbitrum, bsc, gnosis, base],
   connectors: [
     walletConnect({
       projectId,
@@ -21,6 +21,7 @@ export const config = createConfig({
     [arbitrum.id]: http(),
     [bsc.id]: http(),
     [gnosis.id]: http(),
+    [base.id]: http(),
   },
 })
 

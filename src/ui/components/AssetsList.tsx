@@ -15,6 +15,7 @@ const AssetsList = () => {
     setSelectedAsset, 
     contract,
     archanovaAddress,
+    pillarXAddress,
     EOAWalletAddress 
   } = useRecoveryKit();
   
@@ -22,6 +23,7 @@ const AssetsList = () => {
   const selectedAddress = getAddressForContractType(contract || "etherspot-v1", {
     accountAddress,
     archanovaAddress,
+    pillarXAddress,
     EOAWalletAddress,
   });
   const [isAddingAsset, setIsAddingAsset] = useState(false);
@@ -377,6 +379,7 @@ const AssetsList = () => {
               <option value="arbitrum">Arbitrum</option>
               <option value="binance">Binance</option>
               <option value="xdai">Gnosis</option>
+              {contract === "pillarx" && <option value="base">Base</option>}
             </select>
           </label>
           <div className="flex items-center">

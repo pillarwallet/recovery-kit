@@ -4,7 +4,7 @@ import { isAddress } from "viem";
 import { useWalletClient, usePublicClient } from "wagmi";
 
 // hooks
-import { useRecoveryKit } from "../hooks/useRecoveryKit";
+import { useRecoveryKit, useSignerKey } from "../hooks/useRecoveryKit";
 
 // utils
 import { getBlockScan, getNativeTokenSymbol, getAddressForContractType, getContractDisplayName } from "../utils/index";
@@ -18,8 +18,10 @@ const TransferToken = () => {
     EOAWalletAddress,
     contract,
     archanovaAddress,
+    pillarXAddress,
     onboardingMethod
   } = useRecoveryKit();
+  const getSignerKey = useSignerKey();
   
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
@@ -28,6 +30,7 @@ const TransferToken = () => {
   const selectedAddress = getAddressForContractType(contract || "etherspot-v1", {
     accountAddress,
     archanovaAddress,
+    pillarXAddress,
     EOAWalletAddress,
   });
   const [transferAddress, setTransferAddress] = useState<string>("");
@@ -51,7 +54,7 @@ const TransferToken = () => {
           setIsContractDeployed(isDeployed);
           if (!isDeployed && onboardingMethod === 'seed-phrase') {
             // auto-estimate deployment cost (only for seed phrase onboarding)
-            const privateKey = await window.electron.getPrivateKey(seedPhrase);
+            const privateKey = await getSignerKey();
             const cost = await window.electron.estimateArchanovaDeploymentCost(
               selectedAsset.chain as string,
               privateKey,
@@ -76,7 +79,7 @@ const TransferToken = () => {
     };
 
     checkContractDeployment();
-  }, [contract, selectedAddress, selectedAsset?.chain, seedPhrase, archanovaAddress, onboardingMethod]);
+  }, [contract, selectedAddress, selectedAsset?.chain, getSignerKey, archanovaAddress, onboardingMethod]);
 
   const estimateGas = async (
     accountAddress: string,
@@ -86,11 +89,11 @@ const TransferToken = () => {
     chain: string
   ): Promise<string> => {
     // For WalletConnect onboarding, smart contract account transactions require seed phrase
-    if (onboardingMethod === 'wallet-connect' && (contract === 'etherspot-v1' || contract === 'archanova')) {
+    if (onboardingMethod === 'wallet-connect' && (contract === 'etherspot-v1' || contract === 'archanova' || contract === 'pillarx')) {
       return "0"; // Cannot estimate without seed phrase for smart contract accounts
     }
     
-    const privateKey = await window.electron.getPrivateKey(seedPhrase);
+    const privateKey = await getSignerKey();
     const estimatedGas = await window.electron.estimateGas(
       accountAddress,
       tokenAddress,
@@ -167,15 +170,15 @@ const TransferToken = () => {
 
     try {
       // For WalletConnect onboarding with smart contract accounts, require seed phrase
-      if (onboardingMethod === 'wallet-connect' && (contract === 'etherspot-v1' || contract === 'archanova')) {
+      if (onboardingMethod === 'wallet-connect' && (contract === 'etherspot-v1' || contract === 'archanova' || contract === 'pillarx')) {
         if (!seedPhrase || seedPhrase.every(word => word === '')) {
           setTransferStatus("Smart contract account transactions require your seed phrase. Please enter your 12-word seed phrase to continue.");
           return;
         }
       }
 
-      // Use private key for transactions (from seed phrase)
-      const privateKey = await window.electron.getPrivateKey(seedPhrase);
+      // Use private key for transactions (entered directly or from seed phrase)
+      const privateKey = await getSignerKey();
 
       if (
         selectedAsset &&
@@ -291,7 +294,7 @@ const TransferToken = () => {
 
   // Show warning for WalletConnect users trying to use smart contract accounts without seed phrase
   const needsSeedPhrase = onboardingMethod === 'wallet-connect' && 
-    (contract === 'etherspot-v1' || contract === 'archanova') && 
+    (contract === 'etherspot-v1' || contract === 'archanova' || contract === 'pillarx') && 
     (!seedPhrase || seedPhrase.every(word => word === ''));
 
   return (
@@ -380,7 +383,7 @@ const TransferToken = () => {
         </div>
       )}
 
-      {transferStatus && transferStatus?.includes("0x") ? (
+      {transferStatus && /^0x[0-9a-fA-F]{64}$/.test(transferStatus) ? (
         <a
           className="flex w-fit gap-2 text-base bg-[#A55CD6] hover:bg-[#B578DD] px-6 py-2 rounded-xl text-white mt-8"
           href={`${getBlockScan(

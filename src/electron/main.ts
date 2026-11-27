@@ -10,6 +10,7 @@ import {
   getArchanovaAccountId,
   getArchanovaAddressFromEOA,
   getEtherspotAddressFromEOA,
+  getPillarXAddressFromEOA,
   getBalances,
   estimateArchanovaDeploymentCost,
   deployArchanovaContract,
@@ -38,6 +39,7 @@ let chainMapping = {
   binance: "https://bsc-dataseed1.binance.org",
   ethereum: "https://ethereum-rpc.publicnode.com",
   xdai: "https://rpc.gnosischain.com",
+  base: "https://mainnet.base.org",
 };
 
 app.on("ready", () => {
@@ -117,6 +119,16 @@ app.on("ready", () => {
     try {
       const etherspotAddress = await getEtherspotAddressFromEOA(eoaAddress);
       return etherspotAddress;
+    } catch (error) {
+      return `Error, ${error}`;
+    }
+  });
+
+  // Handle getting the PillarX address from EOA address
+  ipcMain.handle("getPillarXAddressFromEOA", async (_, eoaAddress) => {
+    try {
+      const pillarXAddress = await getPillarXAddressFromEOA(eoaAddress);
+      return pillarXAddress;
     } catch (error) {
       return `Error, ${error}`;
     }

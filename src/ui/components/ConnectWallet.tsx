@@ -14,7 +14,8 @@ const ConnectWallet = () => {
     setStep, 
     setOnboardingMethod,
     setArchanovaAddress,
-    setAccountAddress
+    setAccountAddress,
+    setPillarXAddress
   } = useRecoveryKit()
   const [isLoadingAddresses, setIsLoadingAddresses] = useState(false)
 
@@ -45,10 +46,19 @@ const ConnectWallet = () => {
           } else {
             setAccountAddress(null)
           }
+
+          // Derive PillarX address from EOA address
+          const pillarX = await window.electron.getPillarXAddressFromEOA(address)
+          if (pillarX && !pillarX.includes("Error") && pillarX.includes("0x")) {
+            setPillarXAddress(pillarX)
+          } else {
+            setPillarXAddress(null)
+          }
         } catch (error) {
           console.error('Error deriving addresses:', error)
           setArchanovaAddress(null)
           setAccountAddress(null)
+          setPillarXAddress(null)
         } finally {
           setIsLoadingAddresses(false)
           setStep(2)
@@ -57,7 +67,7 @@ const ConnectWallet = () => {
     }
 
     deriveAddresses()
-  }, [onboardingMethod, isConnected, address, setEOAWalletAddress, setStep, setArchanovaAddress, setAccountAddress])
+  }, [onboardingMethod, isConnected, address, setEOAWalletAddress, setStep, setArchanovaAddress, setAccountAddress, setPillarXAddress])
 
   // Only show this component if wallet-connect onboarding method is selected
   if (onboardingMethod !== 'wallet-connect') {
@@ -93,6 +103,7 @@ const ConnectWallet = () => {
               setEOAWalletAddress(null)
               setArchanovaAddress(null)
               setAccountAddress(null)
+              setPillarXAddress(null)
               setStep(1)
             }}
             className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors"

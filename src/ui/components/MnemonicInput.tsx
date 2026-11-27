@@ -16,6 +16,8 @@ const MnemonicInput = () => {
     setSeedPhrase,
     setEOAWalletAddress,
     setArchanovaAddress,
+    setPillarXAddress,
+    setPrivateKey: setSignerPrivateKey,
     setOnboardingMethod,
   } = useRecoveryKit();
   const [activeTab, setActiveTab] = useState<"phrase" | "pk">("phrase");
@@ -49,10 +51,15 @@ const MnemonicInput = () => {
     setIsLoading(true);
 
     try {
+      // Exported private keys do not always come with the 0x prefix
+      const enteredPrivateKey = privateKey.trim().startsWith("0x")
+        ? privateKey.trim()
+        : `0x${privateKey.trim()}`;
+
       const accountAddressRes =
         activeTab === "phrase"
           ? await window.electron.submitMnemonic(seedPhrase)
-          : await window.electron.getAccountAddress(privateKey);
+          : await window.electron.getAccountAddress(enteredPrivateKey);
 
       if (!accountAddressRes || accountAddressRes.includes("Error")) {
         setAccountAddress(null);
@@ -69,9 +76,20 @@ const MnemonicInput = () => {
       if (accountAddressRes?.includes("0x")) {
         setAccountAddress(accountAddressRes);
 
-        const privateKey = await window.electron.getPrivateKey(seedPhrase);
+        const privateKey =
+          activeTab === "phrase"
+            ? await window.electron.getPrivateKey(seedPhrase)
+            : enteredPrivateKey;
+        setSignerPrivateKey(activeTab === "phrase" ? null : enteredPrivateKey);
         const EOAAddress = await window.electron.getEOAAddress(privateKey);
         setEOAWalletAddress(EOAAddress);
+
+        const pillarX = await window.electron.getPillarXAddressFromEOA(EOAAddress);
+        if (pillarX && !pillarX.includes("Error") && pillarX.includes("0x")) {
+          setPillarXAddress(pillarX);
+        } else {
+          setPillarXAddress(null);
+        }
 
         const archanova = await window.electron.getArchanovaAddress(privateKey);
         console.log("archanova", archanova);
