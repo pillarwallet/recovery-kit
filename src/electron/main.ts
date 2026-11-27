@@ -33,7 +33,7 @@ import { ipcMainOn, isDev } from "./utils.js";
 dotenv.config();
 
 let chainMapping = {
-  polygon: "https://polygon-rpc.com",
+  polygon: "https://polygon-bor-rpc.publicnode.com",
   optimism: "https://optimism-rpc.publicnode.com",
   arbitrum: "https://arb1.arbitrum.io/rpc",
   binance: "https://bsc-dataseed1.binance.org",
