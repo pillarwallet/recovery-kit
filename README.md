@@ -20,18 +20,39 @@ Head over to https://github.com/pillarwallet/recovery-kit/releases and download 
 
 ## Running on Mac?
 
-Release 1.1.0 was not code-signed. macOS then says “recovery-kit” is damaged and can’t be opened. The download is intact; the app bundle has no valid signature.
+Recovery Kit is not yet notarized by Apple, so the first time you open it macOS shows:
 
-Copy `recovery-kit.app` from the disk image into Applications, then run:
+> “recovery-kit” Not Opened. Apple could not verify “recovery-kit” is free of malware that may harm your Mac or compromise your privacy.
+
+The download is intact. To open it:
+
+1. Drag `recovery-kit` from the disk image into Applications.
+2. Open it from Applications. When the warning appears, click **Done** (not Move to Trash).
+3. Open **System Settings → Privacy & Security** and scroll down to **Security**. Next to “recovery-kit was blocked to protect your Mac”, click **Open Anyway**.
+4. Confirm with your password or Touch ID, then click **Open Anyway** again.
+
+You only need to do this once. Control-clicking the app and choosing Open no longer bypasses this warning on macOS 15 (Sequoia) and later.
+
+Alternatively, after step 1, run this in Terminal and then open the app normally:
+
+```
+xattr -dr com.apple.quarantine /Applications/recovery-kit.app
+```
+
+Only do this for a copy downloaded from https://github.com/pillarwallet/recovery-kit/releases.
+
+### “recovery-kit” is damaged and can’t be opened
+
+Release 1.1.0 was not code-signed and shows this error instead. Use the latest release, or copy `recovery-kit.app` into Applications and run:
 
 ```
 xattr -cr /Applications/recovery-kit.app
 codesign --force --deep --sign - /Applications/recovery-kit.app
 ```
 
-Open the app from Applications. If macOS says the developer cannot be verified, allow it in System Settings → Privacy & Security.
+### For maintainers
 
-Releases from 1.1.1 onward are signed during the build, so that damaged-app error does not apply. Removing the remaining unidentified-developer prompt requires Apple notarization. Add these secrets to the macOS release job: `CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, and `APPLE_TEAM_ID`.
+Removing the warning for everyone requires signing with an Apple Developer ID and notarizing the build. Add these secrets to the macOS release job: `CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, and `APPLE_TEAM_ID`.
 
 ## Running on Windows?
 These are false positives because the app has not been verified via Windows Store. You can safely ignore these warnings and continue to open the application.
